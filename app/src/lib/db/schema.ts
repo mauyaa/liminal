@@ -91,6 +91,24 @@ export const subscriptionPlans = sqliteTable(
   (table) => [uniqueIndex("subscription_plans_plan_pda_idx").on(table.planPda)]
 );
 
+export const sponsoredTransactions = sqliteTable(
+  "sponsored_transactions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    // sha256 of the unsigned transaction's compiled message - identifies
+    // exactly which transaction the relayer pre-approved to fee-sponsor,
+    // since a wallet's signing step doesn't change the message bytes.
+    messageHash: text("message_hash").notNull(),
+    feePayer: text("fee_payer").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    consumedAt: integer("consumed_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [uniqueIndex("sponsored_transactions_message_hash_idx").on(table.messageHash)]
+);
+
 export const merchantsRelations = relations(merchants, ({ many }) => ({
   products: many(products),
   subscriptionPlans: many(subscriptionPlans),
