@@ -130,6 +130,40 @@ export const sponsoredTransactions = sqliteTable(
   (table) => [uniqueIndex("sponsored_transactions_message_hash_idx").on(table.messageHash)]
 );
 
+export const PHANTOM_SESSION_STATUSES = ["pending_connect", "connected", "completed", "failed"] as const;
+export type PhantomSessionStatus = (typeof PHANTOM_SESSION_STATUSES)[number];
+
+/**
+ * Ephemeral state for a Phantom deeplink checkout (connect -> sign hop
+ * across two separate mobile-app redirects). dappSecretKey never leaves
+ * the server and only exists for the few seconds a user takes to approve
+ * the connect + sign prompts - rows are meant to be short-lived, not an
+ * ongoing session store.
+ */
+export const phantomSessions = sqliteTable(
+  "phantom_sessions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    // Random opaque token used in callback URLs instead of the sequential
+    // id, so a guessed/observed URL from one checkout can't be used to
+    // interfere with another in-flight session.
+    token: text("token").notNull(),
+    dappSecretKey: text("dapp_secret_key").notNull(),
+    dappPublicKey: text("dapp_public_key").notNull(),
+    phantomEncryptionPublicKey: text("phantom_encryption_public_key"),
+    phantomSession: text("phantom_session"),
+    userPublicKey: text("user_public_key"),
+    // JSON-encoded description of what to do once connected, e.g. {"type":"buy","sku":"..."}
+    intent: text("intent").notNull(),
+    status: text("status", { enum: PHANTOM_SESSION_STATUSES }).notNull().default("pending_connect"),
+    errorMessage: text("error_message"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [uniqueIndex("phantom_sessions_token_idx").on(table.token)]
+);
+
 export const merchantsRelations = relations(merchants, ({ many }) => ({
   products: many(products),
   subscriptionPlans: many(subscriptionPlans),
