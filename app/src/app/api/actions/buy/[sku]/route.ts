@@ -143,10 +143,11 @@ export async function POST(
     fundIx,
   ]);
 
-  const response: ActionPostResponse = {
+  const response: ActionPostResponse & { orderPda: string } = {
     type: "transaction",
     transaction,
     message: `Escrow ${listing.title} for $${(listing.priceUsdc / 1_000_000).toFixed(2)} until delivery is confirmed.`,
+    orderPda: orderState.toBase58(),
   };
 
   return NextResponse.json(response, { headers: ACTIONS_CORS_HEADERS });

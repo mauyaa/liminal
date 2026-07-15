@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const DEMO_ACTION_URL =
   "https://app-eight-lovat-94.vercel.app/api/actions/buy/liminal-demo-1";
 const GITHUB_URL = "https://github.com/mauyaa/liminal";
@@ -36,14 +38,18 @@ export default function Home() {
         </p>
 
         <div className="flex flex-col gap-3 border-t border-border pt-8 sm:flex-row sm:items-center">
-          <a
-            href="https://www.blinks.xyz/inspector"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/buy/liminal-demo-1"
             className="inline-flex h-11 items-center justify-center rounded-full bg-foreground px-6 text-sm font-medium text-background transition-opacity hover:opacity-85"
           >
             Try the demo checkout
-          </a>
+          </Link>
+          <Link
+            href="/dashboard"
+            className="inline-flex h-11 items-center justify-center rounded-full border border-border px-6 text-sm font-medium transition-colors hover:bg-foreground/5"
+          >
+            Merchant dashboard
+          </Link>
           <a
             href={GITHUB_URL}
             target="_blank"
@@ -56,8 +62,16 @@ export default function Home() {
 
         <div className="flex flex-col gap-1.5 text-[13px] text-muted">
           <p>
-            Paste this action URL into the Blinks Inspector above to sign a
-            real devnet transaction:
+            Or open it as a Blink directly in the{" "}
+            <a
+              href="https://www.blinks.xyz/inspector"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              Blinks Inspector
+            </a>
+            :
           </p>
           <code className="break-all rounded-md border border-border bg-foreground/[0.03] px-3 py-2 font-mono text-[12px]">
             {DEMO_ACTION_URL}
