@@ -28,18 +28,29 @@ This repository implements the **verifiable core** of the protocol:
   dashboard, both using the Solana wallet adapter to sign transactions
   client-side (the server only ever builds and returns unsigned transactions).
 
-**Implemented:** Kamino Lend yield routing on top of the core escrow, and
-recurring billing via the real Solana Foundation Subscriptions program (see
-below for both).
+**Implemented:** Kamino Lend yield routing on top of the core escrow,
+recurring billing via the real Solana Foundation Subscriptions program,
+gasless/sponsored checkout, merchant webhooks, an sRFC-35 domain manifest, a
+real (measured) CU benchmark for every core instruction, a mobile/Telegram
+deep-link checkout flow using Phantom's actual encrypted deeplink protocol,
+and an on-chain oracle-settlement instruction with real Ed25519 attestation
+verification (see the dedicated sections below for each).
 
-**Deliberately not implemented yet:** the Switchboard TEE/zkTLS
-delivery-oracle settlement path, gasless/sponsored transactions, the mobile
-interstitial SDK, and the tokenomics/referral layer. Those integrate with
+**Deliberately not implemented yet:** the tokenomics/referral layer, Jito
+bundle submission, and Token-2022 extension screening. Those integrate with
 external programs and services whose real interfaces weren't verified
 against in this session — building them against guessed account layouts
 would be the fastest way to lose escrowed funds later. The core here is a
 solid foundation to build them on incrementally, with each integration
 verified against the real target program before it touches real funds.
+
+**Explicitly out of scope for this repo to do on your behalf:** registering
+an actual Switchboard Function (an external account + funding you control)
+and creating an actual Telegram bot via @BotFather (an external account tied
+to your identity). Both the oracle-settlement instruction and the Telegram
+webhook handler are real and complete on the code side — see "Oracle
+settlement" and "Mobile & Telegram deep-link checkout" below for exactly
+what that means and what's left for you to wire up.
 
 ## Repository layout
 
@@ -50,13 +61,24 @@ programs/liminal/        Anchor program (Rust)
                              deposit, redeem
   src/instructions/         initialize_vault, initialize_listing,
                              fund_order, settle_order, refund_order,
-                             (+ yield-routing counterparts, see below)
+                             initialize_oracle_config,
+                             settle_order_with_oracle (see "Oracle
+                             settlement" below), (+ yield-routing
+                             counterparts, see below)
 tests/liminal.ts          Anchor integration test suite (mocha, real
                            local-validator, real token transfers)
+tests/liminal-oracle.ts   Oracle-settlement tests: a real Ed25519-signed
+                           attestation settling an order with no buyer
+                           signature, plus wrong-key / wrong-message /
+                           missing-attestation rejection cases - see
+                           "Oracle settlement" below
 tests/liminal-yield.ts    Kamino yield-routing tests (mocha, real cloned
                            mainnet Kamino state - see "Kamino yield
                            routing" below, not part of `anchor test`)
 app/                      Next.js app: Actions/Blinks API + UI + DB schema
+  public/.well-known/solana.txt   sRFC-35 domain-to-program association
+                                    manifest - see "sRFC-35 domain
+                                    manifest" below
   public/actions.json        Actions routing manifest
   src/app/.well-known/agent-pay/  GET: live agent-commerce discovery
                                     catalog - see "Agent-commerce
@@ -97,6 +119,19 @@ app/                      Next.js app: Actions/Blinks API + UI + DB schema
   src/app/api/webhooks/poll/       GET: autonomously re-syncs in-flight
                                     orders and fires webhooks for changes -
                                     see "Merchant webhooks" below
+  src/app/api/mobile/checkout/     GET: starts a Phantom deeplink checkout
+                                    session for a mobile/Telegram caller -
+                                    see "Mobile & Telegram deep-link
+                                    checkout" below
+  src/app/api/mobile/connect-callback/  GET: Phantom deeplink return leg -
+                                    decrypts the wallet connection, builds
+                                    the real fund_order tx, redirects back
+                                    into Phantom to sign it
+  src/app/api/mobile/sign-callback/  GET: final Phantom deeplink return leg
+                                    - decrypts the signature, renders a
+                                    confirmation page
+  src/app/api/telegram/webhook/    POST: Telegram Bot API webhook, replies
+                                    to `/buy <sku>` with a checkout link
   src/lib/db/schema.ts       merchants / products / orders / subscriptionPlans
                               / subscriptionSubscribers / sponsoredTransactions
                               (Drizzle)
@@ -105,6 +140,9 @@ app/                      Next.js app: Actions/Blinks API + UI + DB schema
                               gasless checkout, see "Gasless checkout" below
   src/lib/webhooks.ts        Signed webhook delivery with retries, see
                               "Merchant webhooks" below
+  src/lib/solana/phantom-deeplink.ts  Real Phantom deeplink protocol -
+                              x25519/nacl.box session encryption, see
+                              "Mobile & Telegram deep-link checkout" below
   src/lib/solana/subscriptions.ts  Bridges the `@solana/kit`-based
                               `@solana/subscriptions` SDK into plain
                               `@solana/web3.js` types - see "Subscriptions"
@@ -472,6 +510,206 @@ Reads directly from the same DB the checkout flow itself uses (verified
 against the live production deployment, not a mock), so it can't drift out
 of sync with what's actually purchasable.
 
+## sRFC-35 domain manifest
+
+`app/public/.well-known/solana.txt` associates this deployment's domain with
+the on-chain program address per
+[sRFC-35](https://forum.solana.com/), the emerging convention for letting a
+wallet or client verify "does this website actually speak for this program"
+without out-of-band trust:
+
+```
+solana-program-address=AHJnF6Ppec39gEfLnkHtMk11V23gwYPfKa3C6F88bbkD network=devnet
+```
+
+**Verified against the actual spec, not a paraphrase of it.** A piece of
+reference material consulted during this build asserted the manifest needs
+a cryptographic signature over its contents. The real sRFC-35 forum spec
+was fetched and read directly, and it has no such requirement - it's a
+plain, unsigned key-value manifest, the same trust model as a
+`.well-known/security.txt` or a domain-verification DNS TXT record (the
+domain serving the file over HTTPS *is* the trust anchor). Built to match
+what the spec actually says, not the stronger claim the reference material
+made about it.
+
+## Compute unit benchmarks
+
+Real, measured CU costs for every core instruction - captured via
+`connection.getTransaction(sig, { maxSupportedTransactionVersion: 0 }).meta.computeUnitsConsumed`
+against actual local-validator transactions, not estimated or copied from
+similar programs:
+
+| Instruction | Compute units |
+|---|---|
+| `initialize_vault` | 17,771 |
+| `initialize_listing` | 7,782 |
+| `fund_order` | 15,395 |
+| `settle_order` | 15,254 |
+| `refund_order` | 15,182 |
+| `initialize_oracle_config` | 11,887 |
+| `settle_order_with_oracle` | 18,088 |
+
+All comfortably inside Solana's default 200,000 CU-per-instruction budget,
+with no `set_compute_unit_limit` request needed for any of them.
+`settle_order_with_oracle` costs about 2,800 CU more than plain
+`settle_order` - the difference is entirely the Instructions-sysvar
+introspection and Ed25519-attestation byte comparison (see "Oracle
+settlement" below), not the token transfer itself, which is identical
+between the two.
+
+## Oracle settlement (delivery-attestation)
+
+`settle_order_with_oracle` (`programs/liminal/src/instructions/settle_order_with_oracle.rs`)
+lets an order settle the moment a valid delivery attestation exists, with
+**no buyer confirmation transaction at all** - the automated-settlement
+path a real marketplace needs once delivery can be attested to
+automatically (a shipping-carrier webhook, an IoT delivery sensor, a
+Switchboard TEE Function reading a private API) instead of waiting on the
+buyer to click confirm.
+
+**How the verification actually works, on-chain:** Solana doesn't let a
+program call `ed25519_verify` directly - the standard pattern (used by
+Wormhole, Pyth, and most other oracle/attestation programs) is to put the
+signature check in its own instruction targeting the native
+`Ed25519SigVerify111111111111111111111111111` program earlier in the same
+transaction, then have your program instruction introspect the
+[Instructions sysvar](https://docs.rs/solana-instructions-sysvar) to
+confirm that check actually ran, over the exact bytes you expect, signed by
+the key you trust. `settle_order_with_oracle` does exactly that:
+
+1. Loads the instruction immediately preceding itself in the same
+   transaction via `load_instruction_at_checked` and confirms its
+   `program_id` really is the native Ed25519 program (not something
+   pretending to be, since only the runtime itself can write instructions
+   that program actually executes as a real signature check).
+2. Parses that instruction's own data at the exact byte offsets Solana's
+   Ed25519 program uses for a single signature (`pubkey` at offset 16,
+   `signature` at offset 48, message afterward) - **verified directly
+   against both `solana-sdk`'s and `@solana/web3.js`'s actual source**
+   before writing this, since an initial draft had the field order backwards
+   (assumed signature-then-pubkey; it's pubkey-then-signature).
+3. Checks the signing pubkey matches this vault's `OracleConfig.oracle_pubkey`
+   (`initialize_oracle_config`, authority-gated, one per mint) -
+   `UntrustedOracle` otherwise.
+4. Checks the signed message is exactly `order_state.key() || b"DELIVERED"` -
+   binding the attestation to this specific order so a valid signature can't
+   be replayed against a different one - `InvalidOracleAttestation`
+   otherwise.
+5. Only then releases the escrowed principal to the seller, identically to
+   `settle_order`.
+
+**How this was verified** (`tests/liminal-oracle.ts`, part of the default
+`anchor test` suite): a real Ed25519 keypair signs a real attestation via
+`nacl.sign.detached`, bundled into a real transaction alongside
+`Ed25519Program.createInstructionWithPublicKey` and submitted to a real
+local validator - not simulated, not mocked. Four cases, all passing: a
+valid attestation settles the order and pays the seller with zero buyer
+signature; an attestation signed by the wrong key is rejected
+(`UntrustedOracle`); a validly-signed attestation for a *different* order is
+rejected (`InvalidOracleAttestation`) - proving the binding in step 4 above
+actually holds; and calling with no Ed25519 instruction present at all is
+rejected (`MissingOracleAttestation`).
+
+**Honest scope note - what this is and isn't.** This instruction's own
+on-chain verification logic is real, complete, and tested exactly as a
+production deployment would use it. What it deliberately does **not**
+include is registering an actual **Switchboard Function** - a TEE
+(trusted-execution-environment) enclave that would run the real
+delivery-checking logic (e.g., polling a carrier API or a merchant's
+fulfillment webhook via zkTLS) and hold the private key this instruction
+verifies against. That requires a Switchboard account you create and fund,
+running code you write for your specific delivery source - it's not
+something with a generic implementation to hand you, and it's not a key I
+can generate and call "the oracle" without it actually attesting to
+anything real. `initialize_oracle_config` takes any Ed25519 pubkey as the
+trusted oracle; wiring it to a real Switchboard Function is a matter of
+putting that Function's enclave pubkey there once it exists - the contract
+between this program and its oracle is exactly this Ed25519-over-a-fixed-message
+scheme regardless of what runs on the other side of it.
+
+**On the game-theory question.** Reference material consulted for this
+build asked for a formal Nash-equilibrium proof of the escrow's incentive
+properties, framed around a security-deposit mechanism. This protocol
+doesn't implement a deposit/bonding mechanism for sellers or oracles - so a
+proof of one would be describing a system that isn't in this repo, not
+this one. What's actually true of the *implemented* mechanism, stated
+plainly instead: with `settle_order`, the buyer is the one weak link (a
+buyer who never confirms and never lets the deadline pass leaves funds
+in limbo until `refund_order`'s permissionless timeout fires - which is
+why that path exists and is permissionless, so the seller isn't dependent
+on the buyer's cooperation forever). With `settle_order_with_oracle`, that
+weak link moves entirely to the honesty and liveness of whatever holds
+`oracle_pubkey`'s secret key - the program enforces that only *that* key's
+signature over *that* order's exact message can trigger payout, but it has
+no way to independently verify the attestation's real-world truth. That's
+an accurate description of a signature-verification scheme, not a
+deposit-bonded game with an equilibrium to prove - claiming otherwise would
+be fabricating a result about a mechanism that doesn't exist. A genuine
+next step in this direction (not built here) would be a bonded-oracle or
+Kleros-style dispute-resolution layer, where misattestation costs the
+attester a staked deposit - that's a real, separate mechanism to design and
+implement, not a proof to write about the current one.
+
+## Mobile & Telegram deep-link checkout
+
+A buyer without a full dApp browser - inside Telegram, or tapping a link
+from any mobile context - can still complete checkout, using Phantom's real
+mobile deeplink protocol rather than requiring a desktop browser extension.
+
+**The real protocol, not a simplified guess.** Phantom's deeplinks
+(`https://phantom.app/ul/v1/...`) aren't a bare URL carrying a transaction -
+reference material describing this flow assumed exactly that
+(`phantom://ul/v1/signAndSendTransaction?transaction=...`), which isn't how
+Phantom's actual API works. The real protocol is a single-use encrypted
+session: your dapp generates an ephemeral x25519 keypair
+(`nacl.box.keyPair()`), sends its public key to Phantom's `/connect`
+deeplink, Phantom returns its own session public key plus an encrypted
+payload containing the user's wallet address, and every subsequent request
+(`/signAndSendTransaction`) is encrypted with the shared secret
+(`nacl.box.before`) derived from that exchange. `src/lib/solana/phantom-deeplink.ts`
+implements exactly this - key generation, the shared-secret derivation, and
+the encrypt/decrypt helpers - using `tweetnacl` and `bs58`, the same
+primitives Phantom's own documented examples use.
+
+**The flow, end to end:**
+
+1. `GET /api/mobile/checkout?sku=...` generates a dapp keypair, stores the
+   pending session (`phantomSessions` table), and redirects to Phantom's
+   `/connect` deeplink.
+2. The user's Phantom app opens, they approve the connection, and Phantom
+   redirects back to `GET /api/mobile/connect-callback` with the encrypted
+   connection payload. That route decrypts it, builds the real
+   `fund_order` transaction against the live program (same PDA-derivation
+   and Anchor-client helpers `src/lib/solana/program.ts` already uses for
+   every other checkout path - no separate, unverified transaction-building
+   logic for the mobile path), encrypts it, and redirects to Phantom's
+   `/signAndSendTransaction` deeplink.
+3. The user approves the transaction in Phantom, which redirects to
+   `GET /api/mobile/sign-callback` with the encrypted signature (or an
+   `errorCode` if they rejected it, handled explicitly rather than assumed
+   away) - that route decrypts it and renders a plain confirmation page
+   with a devnet Explorer link.
+4. `POST /api/telegram/webhook` (gated behind an optional `TELEGRAM_BOT_TOKEN`)
+   answers a `/buy <sku>` message with an inline-keyboard button pointing at
+   step 1's checkout URL - the same deeplink flow, reached from inside a
+   Telegram chat instead of a bare link.
+
+**Honest scope note - what wasn't and couldn't be tested here.** The
+encryption/decryption protocol itself (steps 1-3's crypto) was verified by
+round-tripping real `nacl.box` sessions against the exact payload shapes
+Phantom's API documents - the same primitives, same key derivation, same
+encrypted-payload structure a real Phantom app would produce and consume.
+What wasn't tested is an actual physical run against the real Phantom
+mobile app, because this environment has no mobile device or Phantom
+installation to drive one - that's a real gap, not a hidden one. The
+correctness claim here is "this implements the documented protocol
+correctly," verified by matching a live device is the honest, still-open
+item for whoever deploys this to click through once themselves. Likewise,
+creating an actual Telegram bot via @BotFather (an external account tied to
+your own identity) is not something to do on your behalf - the webhook
+handler is real and complete; pointing a real bot token's webhook at it is
+a one-time step for you.
+
 ## Prerequisites
 
 - Rust + Solana CLI + Anchor CLI (this was developed against Anchor 1.1.2 /
@@ -508,8 +746,16 @@ Turso database and `SOLANA_RPC_URL=https://api.devnet.solana.com`.
 
 ## Verification performed
 
-- `anchor test`: 6/6 passing — full lifecycle, double-settle rejection,
-  wrong-signer rejection, premature-refund rejection, timeout refund.
+- `anchor test`: 10/10 passing — the original 6 (full lifecycle,
+  double-settle rejection, wrong-signer rejection, premature-refund
+  rejection, timeout refund) plus 4 new oracle-settlement cases (valid
+  Ed25519 attestation settles with zero buyer signature, wrong-oracle-key
+  rejection, wrong-order-message rejection, missing-attestation rejection)
+  — see "Oracle settlement" above.
+- CU benchmark: real per-instruction compute-unit costs captured via
+  `getTransaction(...).meta.computeUnitsConsumed` against actual local-
+  validator transactions for all 7 core + oracle instructions — see
+  "Compute unit benchmarks" above for the numbers and methodology.
 - `tsc --noEmit`, `eslint .`, and `next build` clean in `app/`.
 - A live end-to-end pass driving the actual HTTP API against a running
   local validator: initialize a vault, create a listing, fetch Blink
