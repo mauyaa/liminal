@@ -25,11 +25,11 @@ so API errors carry the real on-chain failure reason — always render
   actions), wallet connect, optional "Pay gas fees for me" checkbox
   (routes through `POST …?sponsored=true` + `POST /api/relay/submit`).
 - After landing: `POST /api/orders/sync { orderPda }`.
-- **Missing piece (to build):** after the purchase confirms, link to the
-  order page below — the buyer currently has nowhere to go.
+- **Built:** after the purchase confirms, a "Track this order" link takes
+  the buyer to the order page below.
 
-### `/orders/[orderPda]` — order status + confirm receipt **(to build)**
-The most important missing page: it's where escrow actually resolves.
+### `/orders/[orderPda]` — order status + confirm receipt **(built)**
+The page where escrow actually resolves.
 - Load `GET /api/orders/[orderPda]` → title, price, store, status, and
   `onChain.deliveryDeadline` / `onChain.refundableNow`.
 - Status FUNDED + connected wallet == `onChain.buyer`:
@@ -44,7 +44,7 @@ The most important missing page: it's where escrow actually resolves.
 - Status SETTLED / REFUNDED: terminal state + link
   `https://explorer.solana.com/tx/{resolutionTxSignature}?cluster=devnet`.
 
-### `/orders` — purchase history **(to build)**
+### `/orders` — purchase history **(built)**
 - Wallet connect, then `GET /api/orders?buyerWallet=` → list rows
   (title, store, price, status badge, date), each linking to
   `/orders/[orderPda]`.
@@ -54,14 +54,14 @@ The most important missing page: it's where escrow actually resolves.
 
 ---
 
-## Merchant dashboard (`/dashboard`, tabbed) **(built, two gaps)**
+## Merchant dashboard (`/dashboard`, tabbed) **(built)**
 
 - **Listings / Subscriptions / Webhook / Oracle tabs**: built and live.
-- **Gap 1 — stats header (to build):** render
+- **Stats header (built):** render
   `GET /api/merchant/stats?merchantWallet=` as 4–5 number cards (listings,
   orders by status, settled volume /1e6 as USD, subscribers) above the
   tabs.
-- **Gap 2 — orders tab (to build):** `GET /api/orders?merchantWallet=` —
+- **Orders tab (built):** `GET /api/orders?merchantWallet=` —
   same list UI as buyer history, but seller-side. A FUNDED row is the
   merchant's cue to deliver; SETTLED means paid.
 - Note: a listing is single-sale (one on-chain order per listing). After a

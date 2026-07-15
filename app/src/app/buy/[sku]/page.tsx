@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
@@ -32,6 +33,7 @@ export default function BuyPage() {
   const [payState, setPayState] = useState<PayState>("idle");
   const [payError, setPayError] = useState<string | null>(null);
   const [signature, setSignature] = useState<string | null>(null);
+  const [orderPda, setOrderPda] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/actions/buy/${sku}`)
@@ -90,10 +92,11 @@ export default function BuyPage() {
       await fetch("/api/orders/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderPda: body.orderPda }),
+        body: JSON.stringify({ orderPda: body.orderPda, fundTxSignature: sig }),
       }).catch(() => {});
 
       setSignature(sig);
+      setOrderPda(body.orderPda ?? null);
       setPayState("confirmed");
     } catch (err) {
       setPayError(err instanceof Error ? err.message : "Payment failed");
@@ -150,11 +153,19 @@ export default function BuyPage() {
               )}
 
               {payState === "confirmed" && signature && (
-                <div className="flex flex-col gap-1 text-sm">
+                <div className="flex flex-col gap-2 text-sm">
                   <p className="text-green-600 dark:text-green-400">
                     Escrow funded. Refundable automatically if unconfirmed after the
                     delivery window.
                   </p>
+                  {orderPda && (
+                    <Link
+                      href={`/orders/${orderPda}`}
+                      className="inline-flex h-10 w-fit items-center justify-center rounded-full border border-border px-5 text-sm font-medium transition-colors hover:bg-foreground/5"
+                    >
+                      Track this order
+                    </Link>
+                  )}
                   <a
                     href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
                     target="_blank"

@@ -78,6 +78,18 @@ export default function Home() {
           </code>
         </div>
 
+        <p className="text-[13px] text-muted">
+          Selling somewhere else?{" "}
+          <Link href="/embed" className="underline">
+            Embed a checkout button on any website
+          </Link>{" "}
+          with one script tag, or track{" "}
+          <Link href="/orders" className="underline">
+            your orders
+          </Link>
+          .
+        </p>
+
         <p className="text-[12px] text-muted">
           Program (devnet):{" "}
           <code className="font-mono">{PROGRAM_ID}</code> — devnet only, no
