@@ -1,64 +1,74 @@
-import Image from "next/image";
+const DEMO_ACTION_URL =
+  "https://app-eight-lovat-94.vercel.app/api/actions/buy/liminal-demo-1";
+const GITHUB_URL = "https://github.com/mauyaa/liminal";
+const PROGRAM_ID = "AHJnF6Ppec39gEfLnkHtMk11V23gwYPfKa3C6F88bbkD";
+
+const tags = ["SOLANA", "DEVNET", "ZERO-FEE ESCROW"];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="flex flex-1 items-center justify-center px-6 py-24">
+      <main className="flex w-full max-w-xl flex-col gap-10">
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
+          {tags.map((tag) => (
+            <span
+              key={tag}
+              className="text-[11px] font-medium tracking-[0.14em] text-muted"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl">
+            Liminal Protocol
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="max-w-md text-lg leading-7 text-muted">
+            Headless, zero-fee peer-to-peer escrow checkout on Solana.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+
+        <p className="max-w-md text-[15px] leading-6 text-muted">
+          A buyer&apos;s payment is locked in an on-chain escrow account until
+          they confirm delivery — or automatically refunded if a delivery
+          deadline passes unconfirmed. No platform fee, no custodian.
+        </p>
+
+        <div className="flex flex-col gap-3 border-t border-border pt-8 sm:flex-row sm:items-center">
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            href="https://www.blinks.xyz/inspector"
             target="_blank"
             rel="noopener noreferrer"
+            className="inline-flex h-11 items-center justify-center rounded-full bg-foreground px-6 text-sm font-medium text-background transition-opacity hover:opacity-85"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
+            Try the demo checkout
           </a>
           <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            href={GITHUB_URL}
             target="_blank"
             rel="noopener noreferrer"
+            className="inline-flex h-11 items-center justify-center rounded-full border border-border px-6 text-sm font-medium transition-colors hover:bg-foreground/5"
           >
-            Documentation
+            View source
           </a>
         </div>
+
+        <div className="flex flex-col gap-1.5 text-[13px] text-muted">
+          <p>
+            Paste this action URL into the Blinks Inspector above to sign a
+            real devnet transaction:
+          </p>
+          <code className="break-all rounded-md border border-border bg-foreground/[0.03] px-3 py-2 font-mono text-[12px]">
+            {DEMO_ACTION_URL}
+          </code>
+        </div>
+
+        <p className="text-[12px] text-muted">
+          Program (devnet):{" "}
+          <code className="font-mono">{PROGRAM_ID}</code> — devnet only, no
+          real funds.
+        </p>
       </main>
     </div>
   );
