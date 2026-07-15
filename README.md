@@ -610,6 +610,20 @@ rejected (`InvalidOracleAttestation`) - proving the binding in step 4 above
 actually holds; and calling with no Ed25519 instruction present at all is
 rejected (`MissingOracleAttestation`).
 
+Beyond the local-validator suite, the upgraded program (both new instructions
+included) was deployed as a real upgrade to the live devnet deployment above
+(`solana program deploy`, same program id, same upgrade authority as the
+original deploy), and the full flow was run once more against that real
+deployment with a fresh throwaway mint: `initialize_vault` →
+`initialize_oracle_config` → `initialize_listing` → `fund_order` →
+a real Ed25519-signed attestation → `settle_order_with_oracle` - landing as
+an actual devnet transaction, confirmed settled, seller's token balance
+confirmed increased by the principal. The existing checkout flow
+(`/api/actions/buy/liminal-demo-1`) was re-checked against production
+immediately afterward and confirmed unaffected - the upgrade is additive
+only (a new `OracleConfig` PDA type, no changes to `UnifiedVault` or
+`OrderState`'s existing layout).
+
 **Honest scope note - what this is and isn't.** This instruction's own
 on-chain verification logic is real, complete, and tested exactly as a
 production deployment would use it. What it deliberately does **not**
@@ -752,6 +766,13 @@ Turso database and `SOLANA_RPC_URL=https://api.devnet.solana.com`.
   Ed25519 attestation settles with zero buyer signature, wrong-oracle-key
   rejection, wrong-order-message rejection, missing-attestation rejection)
   — see "Oracle settlement" above.
+- Deployed the oracle-settlement upgrade to the live devnet program (same
+  program id, same upgrade authority) and re-ran the full oracle flow
+  against it directly — a real Ed25519-signed attestation settling a real
+  order with zero buyer signature, on an actual devnet transaction, not
+  just the local-validator suite. Re-checked the existing production
+  checkout flow immediately afterward and confirmed it's unaffected. See
+  "Oracle settlement" above.
 - CU benchmark: real per-instruction compute-unit costs captured via
   `getTransaction(...).meta.computeUnitsConsumed` against actual local-
   validator transactions for all 7 core + oracle instructions — see
