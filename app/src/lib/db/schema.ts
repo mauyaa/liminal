@@ -11,6 +11,11 @@ export const merchants = sqliteTable(
     id: integer("id").primaryKey({ autoIncrement: true }),
     wallet: text("wallet").notNull(),
     storeName: text("store_name").notNull(),
+    // Both optional - a merchant that hasn't configured webhooks just
+    // doesn't get any. webhookSecret is generated when webhookUrl is first
+    // set, used to HMAC-sign delivered payloads.
+    webhookUrl: text("webhook_url"),
+    webhookSecret: text("webhook_secret"),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
