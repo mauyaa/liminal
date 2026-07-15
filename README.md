@@ -433,10 +433,12 @@ just the client-triggered one.
 - `/api/webhooks/poll` isn't wired to an actual scheduler in this repo (no
   `vercel.json` cron config was added) - that's a deployment decision, not
   a code one, left for whoever operates this to wire up.
-- No abuse protection on `/api/webhooks/poll` itself (anyone can call it) -
-  harmless today since it only reflects real on-chain state and can't be
-  tricked into firing a false webhook, but worth locking down (e.g. behind
-  a shared secret) before exposing it publicly at scale.
+- Both `/api/webhooks/poll` and `/api/subscriptions/poll` are gated behind
+  `CRON_SECRET` (see `src/lib/cron-auth.ts`) - open by default for local
+  dev, but set it in production so these can't be called by anyone who
+  finds the URL. Vercel Cron sends the matching `Authorization: Bearer`
+  header automatically when the env var is set, so wiring a `vercel.json`
+  cron entry to either endpoint needs no extra plumbing.
 
 ## Prerequisites
 

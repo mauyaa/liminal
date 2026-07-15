@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { PublicKey, Transaction } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, createAssociatedTokenAccountIdempotentInstruction } from "@solana/spl-token";
 import { eq } from "drizzle-orm";
@@ -7,6 +7,7 @@ import { subscriptionSubscribers, subscriptionPlans, merchants } from "@/lib/db/
 import { getConnection } from "@/lib/solana/program";
 import { getRelayerKeypair } from "@/lib/solana/relayer";
 import { collectSubscriptionIx, isSubscriptionDueForCollect } from "@/lib/solana/subscriptions";
+import { requireCronAuth } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -21,7 +22,10 @@ export const maxDuration = 60;
  * schedule, same as `/api/webhooks/poll` - see README's "Subscriptions"
  * section.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const unauthorized = requireCronAuth(request);
+  if (unauthorized) return unauthorized;
+
   let relayer;
   try {
     relayer = getRelayerKeypair();

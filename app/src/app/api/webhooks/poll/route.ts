@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { orders } from "@/lib/db/schema";
 import { syncOrder } from "@/app/api/orders/sync/route";
+import { requireCronAuth } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -16,7 +17,10 @@ export const maxDuration = 60;
  * Actions, or any external scheduler) - see README's "Merchant webhooks"
  * section.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const unauthorized = requireCronAuth(request);
+  if (unauthorized) return unauthorized;
+
   const inFlight = await db.query.orders.findMany({
     where: inArray(orders.escrowStatus, ["INITIALIZED", "FUNDED"]),
   });
