@@ -123,6 +123,188 @@ export type Liminal = {
       ]
     },
     {
+      "name": "fundOrderYield",
+      "discriminator": [
+        148,
+        0,
+        122,
+        242,
+        27,
+        98,
+        164,
+        214
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "seller",
+          "relations": [
+            "orderState"
+          ]
+        },
+        {
+          "name": "orderState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "arg",
+                "path": "marketItemId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "unifiedVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  110,
+                  97,
+                  108,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vaultTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "buyerTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "orderKtokenAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  107,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "arg",
+                "path": "marketItemId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "kaminoProgram"
+        },
+        {
+          "name": "kaminoReserve",
+          "writable": true
+        },
+        {
+          "name": "kaminoLendingMarket"
+        },
+        {
+          "name": "kaminoLendingMarketAuthority"
+        },
+        {
+          "name": "kaminoReserveLiquiditySupply",
+          "writable": true
+        },
+        {
+          "name": "kaminoReserveCollateralMint",
+          "writable": true
+        },
+        {
+          "name": "kaminoPythOracle"
+        },
+        {
+          "name": "kaminoSwitchboardPriceOracle"
+        },
+        {
+          "name": "kaminoSwitchboardTwapOracle"
+        },
+        {
+          "name": "kaminoScopePrices"
+        },
+        {
+          "name": "instructionsSysvar"
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "marketItemId",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "initializeListing",
       "discriminator": [
         170,
@@ -192,6 +374,69 @@ export type Liminal = {
         {
           "name": "deliveryWindow",
           "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "initializeOracleConfig",
+      "discriminator": [
+        131,
+        55,
+        232,
+        105,
+        168,
+        248,
+        10,
+        102
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "oracleConfig",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "oraclePubkey",
+          "type": "pubkey"
         }
       ]
     },
@@ -294,6 +539,141 @@ export type Liminal = {
       "args": []
     },
     {
+      "name": "initializeVaultYield",
+      "discriminator": [
+        80,
+        230,
+        81,
+        34,
+        82,
+        12,
+        102,
+        7
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "unifiedVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  110,
+                  97,
+                  108,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  110,
+                  97,
+                  108,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "kaminoLendingMarket",
+          "type": "pubkey"
+        },
+        {
+          "name": "kaminoReserve",
+          "type": "pubkey"
+        },
+        {
+          "name": "kaminoLendingMarketAuthority",
+          "type": "pubkey"
+        },
+        {
+          "name": "kaminoReserveLiquiditySupply",
+          "type": "pubkey"
+        },
+        {
+          "name": "kaminoReserveCollateralMint",
+          "type": "pubkey"
+        },
+        {
+          "name": "kaminoPythOracle",
+          "type": "pubkey"
+        },
+        {
+          "name": "kaminoSwitchboardPriceOracle",
+          "type": "pubkey"
+        },
+        {
+          "name": "kaminoSwitchboardTwapOracle",
+          "type": "pubkey"
+        },
+        {
+          "name": "kaminoScopePrices",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
       "name": "refundOrder",
       "discriminator": [
         164,
@@ -393,6 +773,189 @@ export type Liminal = {
         {
           "name": "buyerTokenAccount",
           "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "marketItemId",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "refundOrderYield",
+      "discriminator": [
+        235,
+        190,
+        109,
+        19,
+        183,
+        55,
+        116,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "docs": [
+            "Permissionless: anyone may trigger a timeout refund once the",
+            "delivery deadline has passed. Only pays the transaction fee, and",
+            "receives the reclaimed kToken-account rent as a small incentive."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "seller",
+          "relations": [
+            "orderState"
+          ]
+        },
+        {
+          "name": "orderState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "arg",
+                "path": "marketItemId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "orderKtokenAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  107,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "arg",
+                "path": "marketItemId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "unifiedVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  110,
+                  97,
+                  108,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vaultTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "buyerTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "kaminoProgram"
+        },
+        {
+          "name": "kaminoReserve",
+          "writable": true
+        },
+        {
+          "name": "kaminoLendingMarket"
+        },
+        {
+          "name": "kaminoLendingMarketAuthority"
+        },
+        {
+          "name": "kaminoReserveLiquiditySupply",
+          "writable": true
+        },
+        {
+          "name": "kaminoReserveCollateralMint",
+          "writable": true
+        },
+        {
+          "name": "kaminoPythOracle"
+        },
+        {
+          "name": "kaminoSwitchboardPriceOracle"
+        },
+        {
+          "name": "kaminoSwitchboardTwapOracle"
+        },
+        {
+          "name": "kaminoScopePrices"
+        },
+        {
+          "name": "instructionsSysvar"
         },
         {
           "name": "tokenProgram",
@@ -519,9 +1082,354 @@ export type Liminal = {
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "settleOrderWithOracle",
+      "discriminator": [
+        50,
+        114,
+        225,
+        75,
+        41,
+        43,
+        144,
+        128
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "docs": [
+            "Permissionless: anyone holding a valid attestation may trigger",
+            "settlement. Only pays the transaction fee."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "seller",
+          "relations": [
+            "orderState"
+          ]
+        },
+        {
+          "name": "orderState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "arg",
+                "path": "marketItemId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "oracleConfig",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "unifiedVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  110,
+                  97,
+                  108,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vaultTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "sellerTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "instructionsSysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "marketItemId",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "settleOrderYield",
+      "discriminator": [
+        243,
+        39,
+        88,
+        75,
+        142,
+        94,
+        190,
+        230
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "docs": [
+            "Buyer confirms receipt and releases funds (principal + this order's",
+            "share of accrued yield) to the seller. Marked mut: receives the",
+            "reclaimed rent when the per-order kToken account is closed below."
+          ],
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "orderState"
+          ]
+        },
+        {
+          "name": "seller",
+          "relations": [
+            "orderState"
+          ]
+        },
+        {
+          "name": "orderState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "arg",
+                "path": "marketItemId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "orderKtokenAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  107,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "arg",
+                "path": "marketItemId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "unifiedVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  110,
+                  97,
+                  108,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vaultTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "sellerTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "kaminoProgram"
+        },
+        {
+          "name": "kaminoReserve",
+          "writable": true
+        },
+        {
+          "name": "kaminoLendingMarket"
+        },
+        {
+          "name": "kaminoLendingMarketAuthority"
+        },
+        {
+          "name": "kaminoReserveLiquiditySupply",
+          "writable": true
+        },
+        {
+          "name": "kaminoReserveCollateralMint",
+          "writable": true
+        },
+        {
+          "name": "kaminoPythOracle"
+        },
+        {
+          "name": "kaminoSwitchboardPriceOracle"
+        },
+        {
+          "name": "kaminoSwitchboardTwapOracle"
+        },
+        {
+          "name": "kaminoScopePrices"
+        },
+        {
+          "name": "instructionsSysvar"
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "marketItemId",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
+    {
+      "name": "oracleConfig",
+      "discriminator": [
+        133,
+        196,
+        152,
+        50,
+        27,
+        21,
+        145,
+        254
+      ]
+    },
     {
       "name": "orderState",
       "discriminator": [
@@ -569,6 +1477,26 @@ export type Liminal = {
       "code": 6003,
       "name": "deadlineNotReached",
       "msg": "The delivery deadline has not yet passed."
+    },
+    {
+      "code": 6004,
+      "name": "yieldNotEnabled",
+      "msg": "This vault was not configured for Kamino yield routing."
+    },
+    {
+      "code": 6005,
+      "name": "missingOracleAttestation",
+      "msg": "Settlement requires a preceding Ed25519 signature-verification instruction in the same transaction."
+    },
+    {
+      "code": 6006,
+      "name": "invalidOracleAttestation",
+      "msg": "The oracle attestation's signed message did not match this order and delivery status."
+    },
+    {
+      "code": 6007,
+      "name": "untrustedOracle",
+      "msg": "The attestation was signed by a key other than this vault's configured oracle."
     }
   ],
   "types": [
@@ -588,6 +1516,38 @@ export type Liminal = {
           },
           {
             "name": "refunded"
+          }
+        ]
+      }
+    },
+    {
+      "name": "oracleConfig",
+      "docs": [
+        "Per-mint config naming the pubkey trusted to sign delivery attestations",
+        "for `settle_order_with_oracle`. A separate, additive account rather than",
+        "a new `UnifiedVault` field, so existing already-deployed vaults don't",
+        "need to change layout to get this. In production this pubkey would be a",
+        "registered Switchboard TEE enclave's attestation key; here it's just a",
+        "configurable trusted signer, set once by the vault's authority."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "oraclePubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }
@@ -643,6 +1603,10 @@ export type Liminal = {
             }
           },
           {
+            "name": "kTokenShares",
+            "type": "u64"
+          },
+          {
             "name": "bump",
             "type": "u8"
           }
@@ -654,7 +1618,15 @@ export type Liminal = {
       "docs": [
         "Global, per-mint escrow custody account. One `UnifiedVault` holds every",
         "buyer's in-escrow principal for a given stablecoin mint, so orders don't",
-        "each need their own token account."
+        "each need their own token account.",
+        "",
+        "When `yield_enabled` is true, the `kamino_*` fields configure a specific",
+        "Kamino Lend reserve that `fund_order_yield`/`settle_order_yield`/",
+        "`refund_order_yield` route 75% of each order's principal through. These",
+        "fields are trusted admin input (set once, by the vault's `authority`) -",
+        "Kamino's own program independently validates them on every CPI, so a",
+        "misconfigured value fails the CPI atomically rather than misdirecting",
+        "funds."
       ],
       "type": {
         "kind": "struct",
@@ -676,6 +1648,50 @@ export type Liminal = {
             "type": "u64"
           },
           {
+            "name": "yieldEnabled",
+            "type": "bool"
+          },
+          {
+            "name": "kaminoProgram",
+            "type": "pubkey"
+          },
+          {
+            "name": "kaminoLendingMarket",
+            "type": "pubkey"
+          },
+          {
+            "name": "kaminoLendingMarketAuthority",
+            "type": "pubkey"
+          },
+          {
+            "name": "kaminoReserve",
+            "type": "pubkey"
+          },
+          {
+            "name": "kaminoReserveLiquiditySupply",
+            "type": "pubkey"
+          },
+          {
+            "name": "kaminoReserveCollateralMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "kaminoPythOracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "kaminoSwitchboardPriceOracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "kaminoSwitchboardTwapOracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "kaminoScopePrices",
+            "type": "pubkey"
+          },
+          {
             "name": "bump",
             "type": "u8"
           }
@@ -684,6 +1700,16 @@ export type Liminal = {
     }
   ],
   "constants": [
+    {
+      "name": "oracleConfigSeed",
+      "type": "bytes",
+      "value": "[111, 114, 97, 99, 108, 101, 45, 99, 111, 110, 102, 105, 103]"
+    },
+    {
+      "name": "orderKtokenSeed",
+      "type": "bytes",
+      "value": "[111, 114, 100, 101, 114, 45, 107, 116, 111, 107, 101, 110]"
+    },
     {
       "name": "orderSeed",
       "type": "bytes",
