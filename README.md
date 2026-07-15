@@ -84,11 +84,17 @@ app/                      Next.js app: Actions/Blinks API + UI + DB schema
   src/app/api/relay/submit/        POST: countersigns + broadcasts a
                                     pre-approved sponsored (gasless) tx -
                                     see "Gasless checkout" below
+  src/app/api/merchant/webhook/    POST: set/update a merchant's webhook URL
+  src/app/api/webhooks/poll/       GET: autonomously re-syncs in-flight
+                                    orders and fires webhooks for changes -
+                                    see "Merchant webhooks" below
   src/lib/db/schema.ts       merchants / products / orders / subscriptionPlans
                               / sponsoredTransactions (Drizzle)
   src/lib/solana/program.ts  PDA derivation + Anchor client helpers
   src/lib/solana/relayer.ts  Relayer keypair + message-hash helpers for
                               gasless checkout, see "Gasless checkout" below
+  src/lib/webhooks.ts        Signed webhook delivery with retries, see
+                              "Merchant webhooks" below
   src/lib/solana/subscriptions.ts  Bridges the `@solana/kit`-based
                               `@solana/subscriptions` SDK into plain
                               `@solana/web3.js` types - see "Subscriptions"
@@ -328,6 +334,62 @@ signed transaction against `/api/relay/submit` a second time is rejected.
   This is built for a caller (this repo's own frontend, or another client)
   that knows to look for it, not for arbitrary wallet UIs out of the box.
 
+## Merchant webhooks
+
+A merchant can register a URL to be notified when one of their orders
+changes state (`order.initialized` / `order.funded` / `order.settled` /
+`order.refunded`), instead of having to poll the API themselves.
+
+**How it works:**
+
+- `POST /api/merchant/webhook` sets (or updates) a merchant's webhook URL.
+  The first time a merchant configures one, a signing secret is generated
+  and returned - stable across later URL updates, so existing
+  signature-verification code on the merchant's side doesn't break when
+  they change the endpoint.
+- Delivery is signed the same way Stripe/GitHub webhooks are: an
+  `X-Liminal-Signature` header carrying the hex HMAC-SHA256 of the raw JSON
+  body, keyed by the merchant's secret. `src/lib/webhooks.ts` retries a
+  failed delivery up to 3 times with backoff (0s / 2s / 5s) and never
+  throws - a merchant's endpoint being down doesn't fail the caller's
+  request.
+- There are two ways a webhook actually gets sent, both funneling through
+  the same `syncOrder` helper in `src/app/api/orders/sync/route.ts` so the
+  change-detection and delivery logic only exists once:
+  - **Client-triggered**: `POST /api/orders/sync` (already existed for
+    syncing the DB after a client observes its own transaction land) now
+    also fires the webhook if the freshly-read on-chain status differs
+    from what was cached.
+  - **Autonomous**: `GET /api/webhooks/poll` re-syncs every order not yet
+    in a terminal state and fires webhooks for any that changed since the
+    last check - this is what actually makes delivery not depend on a
+    client happening to call sync. It's meant to be hit on a schedule
+    (Vercel Cron, a GitHub Actions cron workflow, or any external pinger)
+    rather than run continuously, since this is a serverless deployment
+    with no long-lived process to run a persistent indexer in.
+
+**How this was verified.** A real devnet run: registered a local HTTP
+receiver as a merchant's webhook, funded a real order, called `/sync` and
+confirmed a correctly-signed `order.funded` payload arrived; confirmed a
+second `/poll` call with nothing changed reports zero and doesn't re-fire;
+then settled the same order on-chain *without* ever calling `/sync`, called
+`/poll`, and confirmed it autonomously detected the change and delivered a
+correctly-signed `order.settled` payload - the actual autonomous path, not
+just the client-triggered one.
+
+**Scope notes:**
+- No dedicated on-chain event indexer (log/websocket subscriptions) - this
+  is polling-based, which is what actually fits a serverless deployment
+  with no persistent process. Fine at this scale; a high-volume production
+  deployment would want a real indexer instead of polling every order.
+- `/api/webhooks/poll` isn't wired to an actual scheduler in this repo (no
+  `vercel.json` cron config was added) - that's a deployment decision, not
+  a code one, left for whoever operates this to wire up.
+- No abuse protection on `/api/webhooks/poll` itself (anyone can call it) -
+  harmless today since it only reflects real on-chain state and can't be
+  tricked into firing a false webhook, but worth locking down (e.g. behind
+  a shared secret) before exposing it publicly at scale.
+
 ## Prerequisites
 
 - Rust + Solana CLI + Anchor CLI (this was developed against Anchor 1.1.2 /
@@ -397,3 +459,10 @@ Turso database and `SOLANA_RPC_URL=https://api.devnet.solana.com`.
   balance confirmed reflecting the order price plus the flat relayer fee,
   and replaying an already-consumed sponsorship against `/api/relay/submit`
   confirmed rejected. See "Gasless checkout" above.
+- Merchant webhooks: a real devnet run — funded a real order and confirmed
+  a correctly-signed `order.funded` webhook via `/api/orders/sync`;
+  confirmed `/api/webhooks/poll` reports zero changes and doesn't re-fire
+  when nothing changed; then settled the same order on-chain *without*
+  calling `/sync`, called `/poll`, and confirmed it autonomously detected
+  the change and delivered a correctly-signed `order.settled` webhook. See
+  "Merchant webhooks" above.
