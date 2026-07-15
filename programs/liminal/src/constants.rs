@@ -8,3 +8,18 @@ pub const VAULT_TOKEN_SEED: &[u8] = b"liminal-vault-token";
 
 #[constant]
 pub const ORDER_SEED: &[u8] = b"order-state";
+
+#[constant]
+pub const ORDER_KTOKEN_SEED: &[u8] = b"order-ktoken";
+
+/// Kamino Lend (klend) mainnet program. There is no meaningful Kamino
+/// deployment on devnet, so vaults with `yield_enabled = true` only make
+/// sense against a mainnet deployment of this program.
+pub const KAMINO_PROGRAM_ID: Pubkey = pubkey!("KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD");
+
+/// Percentage of a funded order's principal routed into Kamino for yield.
+/// The remainder stays liquid in the vault's own token account, matching
+/// the multi-tiered buffer model: instant redeemability for a portion of
+/// deposits even if the lending market is temporarily illiquid.
+pub const YIELD_BPS: u64 = 7_500; // 75.00%
+pub const BPS_DENOMINATOR: u64 = 10_000;

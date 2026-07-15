@@ -10,4 +10,6 @@ pub enum LiminalError {
     InvalidListingParams,
     #[msg("The delivery deadline has not yet passed.")]
     DeadlineNotReached,
+    #[msg("This vault was not configured for Kamino yield routing.")]
+    YieldNotEnabled,
 }
