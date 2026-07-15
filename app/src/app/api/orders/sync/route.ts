@@ -27,6 +27,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "orderPda must be a base58 pubkey" }, { status: 400 });
   }
 
+  // Optionally record which transactions caused the change - the client is
+  // the only party that knows the signature of a wallet-submitted tx, and
+  // the order page uses these for explorer links. Display metadata only:
+  // status itself always comes from re-reading the chain, never from the
+  // client's claim.
+  const sigs: { fundTxSignature?: string; resolutionTxSignature?: string } = {};
+  if (typeof body.fundTxSignature === "string" && body.fundTxSignature.length <= 128) {
+    sigs.fundTxSignature = body.fundTxSignature;
+  }
+  if (typeof body.resolutionTxSignature === "string" && body.resolutionTxSignature.length <= 128) {
+    sigs.resolutionTxSignature = body.resolutionTxSignature;
+  }
+  if (Object.keys(sigs).length > 0) {
+    await db.update(orders).set(sigs).where(eq(orders.orderPda, orderPda));
+  }
+
   const result = await syncOrder(orderPda);
   if (!result) {
     return NextResponse.json({ message: "unknown orderPda, or order account not found on-chain" }, { status: 404 });

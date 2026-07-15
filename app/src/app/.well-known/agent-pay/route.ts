@@ -55,6 +55,16 @@ export async function GET(request: NextRequest) {
     network: "devnet",
     actionsManifest: `${baseUrl}/actions.json`,
     escrowProgram: "AHJnF6Ppec39gEfLnkHtMk11V23gwYPfKa3C6F88bbkD",
+    // Full order lifecycle, so an agent that funded an escrow can also
+    // track it, confirm receipt, and reclaim a timeout refund - not just
+    // discover and pay. {orderPda} comes back from the checkout POST.
+    orderLifecycle: {
+      history: `${baseUrl}/api/orders?buyerWallet={wallet}`,
+      detail: `${baseUrl}/api/orders/{orderPda}`,
+      confirmReceipt: `${baseUrl}/api/orders/{orderPda}/settle`,
+      refundAfterDeadline: `${baseUrl}/api/orders/{orderPda}/refund`,
+      syncAfterSubmit: `${baseUrl}/api/orders/sync`,
+    },
     catalog: {
       products: productRows.map((p) => ({
         sku: p.sku,

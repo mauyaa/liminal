@@ -4,14 +4,17 @@ import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import ListingsPanel from "./_components/ListingsPanel";
+import OrdersPanel from "./_components/OrdersPanel";
 import SubscriptionsPanel from "./_components/SubscriptionsPanel";
 import WebhookSettingsPanel from "./_components/WebhookSettingsPanel";
 import OracleConfigPanel from "./_components/OracleConfigPanel";
+import StatsHeader from "./_components/StatsHeader";
 
-type Tab = "listings" | "subscriptions" | "webhook" | "oracle";
+type Tab = "listings" | "orders" | "subscriptions" | "webhook" | "oracle";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "listings", label: "Listings" },
+  { id: "orders", label: "Orders" },
   { id: "subscriptions", label: "Subscriptions" },
   { id: "webhook", label: "Webhook" },
   { id: "oracle", label: "Oracle" },
@@ -33,6 +36,8 @@ export default function DashboardPage() {
           <p className="text-sm text-muted">Connect a devnet wallet to manage your store.</p>
         ) : (
           <>
+            <StatsHeader />
+
             <nav className="flex gap-1 border-b border-border">
               {TABS.map((t) => (
                 <button
@@ -50,6 +55,7 @@ export default function DashboardPage() {
             </nav>
 
             {tab === "listings" && <ListingsPanel />}
+            {tab === "orders" && <OrdersPanel />}
             {tab === "subscriptions" && <SubscriptionsPanel />}
             {tab === "webhook" && <WebhookSettingsPanel />}
             {tab === "oracle" && <OracleConfigPanel />}

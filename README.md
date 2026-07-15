@@ -616,6 +616,43 @@ What this repo now does about it, and what a mainnet deployment must do:
    pre-deploy check that the on-chain binary being replaced actually
    matches the source revision the "diff" was computed against.
 
+## Embeddable checkout
+
+`app/public/embed.js` - one script tag turns any website into a Liminal
+storefront (`/embed` on the live deployment documents it with a live demo):
+
+```html
+<script src="https://app-eight-lovat-94.vercel.app/embed.js"
+        data-liminal-sku="your-sku" async></script>
+```
+
+Renders a checkout button in place; clicking opens the hosted checkout in
+a popup - the Stripe-Checkout redirect model, so the host site needs no
+wallet code and never touches funds. The label shows the live title and
+price fetched from the same CORS-open Actions endpoint wallets use, so
+the button can't drift from what the buyer actually pays. Handles dynamic
+injection (tag managers, `next/script`) where `document.currentScript` is
+null, and falls back to same-tab navigation when popups are blocked.
+Optional `data-label` and `data-theme="light"` attributes.
+
+## Buyer order pages
+
+The escrow lifecycle is now fully drivable from the UI, not just the API:
+
+- `/orders/[orderPda]` - live order status with the actions that resolve
+  escrow: the buyer's **"Confirm receipt - release funds"** button
+  (`settle_order`), and once the deadline passes, a **"Claim refund now"**
+  button (permissionless, shown to any connected wallet) alongside the
+  note that refunds also happen automatically. Terminal states link the
+  funding/resolution transactions on the explorer - the sync route now
+  accepts optional client-observed signatures for exactly this.
+- `/orders` - purchase history for the connected wallet, linking each
+  order to its status page.
+- `/buy/[sku]` links to the order page after a successful checkout
+  ("Track this order"), and the dashboard gained an **Orders** tab
+  (seller-side view of the same data) plus a stats header driven by
+  `/api/merchant/stats`.
+
 ## Merchant stats
 
 `GET /api/merchant/stats?merchantWallet=` - order counts by status, settled
@@ -887,6 +924,20 @@ Turso database and `SOLANA_RPC_URL=https://api.devnet.solana.com`.
 
 ## Verification performed
 
+- Frontend completion pass: `/orders`, `/orders/[orderPda]`, `/embed`, the
+  dashboard stats header and Orders tab, and the embed widget all verified
+  rendering in a real browser against a local dev server (zero console
+  errors), including the embed button fetching its live label
+  ("Liminal Demo Checkout · Buy for $1.00") cross-origin from the Actions
+  endpoint - which also caught and fixed a real bug: `document.currentScript`
+  is null under dynamic injection (`next/script`, tag managers), so the
+  script now falls back to locating its own tag. Re-verified live in
+  production after deploying: all new pages 200, `embed.js` served, the
+  agent-pay manifest exposes the new `orderLifecycle` endpoints, and the
+  order page loads the real demo order. (Blink rendering through Dialect's
+  dial.to interstitial couldn't be re-checked - their deployment was
+  paused at the time - the Actions endpoints + actions.json it consumes
+  are verified directly.)
 - Order lifecycle + autonomous refunds: full E2E against real devnet with
   three fresh throwaway wallets — fund → settle via the new endpoint
   (seller balance +principal exactly, double-settle 409s), fund → deadline
