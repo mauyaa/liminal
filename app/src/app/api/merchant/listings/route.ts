@@ -132,3 +132,41 @@ export async function POST(request: NextRequest) {
     transaction,
   });
 }
+
+/** Lists a merchant's products with their current order status. */
+export async function GET(request: NextRequest) {
+  const merchantWallet = request.nextUrl.searchParams.get("merchantWallet");
+  if (!merchantWallet) {
+    return NextResponse.json({ message: "merchantWallet query param is required" }, { status: 400 });
+  }
+
+  const merchant = await db.query.merchants.findFirst({
+    where: eq(merchants.wallet, merchantWallet),
+  });
+  if (!merchant) {
+    return NextResponse.json({ listings: [] });
+  }
+
+  const rows = await db.query.products.findMany({
+    where: eq(products.merchantId, merchant.id),
+    with: { orders: true },
+    orderBy: (products, { desc }) => [desc(products.createdAt)],
+  });
+
+  const listings = rows.map((product) => {
+    const order = product.orders[0];
+    return {
+      sku: product.sku,
+      title: product.title,
+      imageUrl: product.imageUrl,
+      priceUsdc: product.priceUsdc,
+      mint: product.mint,
+      deliveryWindowSeconds: product.deliveryWindowSeconds,
+      orderPda: order?.orderPda ?? null,
+      escrowStatus: order?.escrowStatus ?? null,
+      buyerWallet: order?.buyerWallet ?? null,
+    };
+  });
+
+  return NextResponse.json({ listings });
+}
