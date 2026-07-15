@@ -36,6 +36,13 @@
       "when": 1784113173322,
       "tag": "0004_reflective_korvac",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1784119435523,
+      "tag": "0005_abandoned_the_stranger",
+      "breakpoints": true
     }
   ]
 }

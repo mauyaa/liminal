@@ -1,0 +1,1 @@
+solana-program-address=AHJnF6Ppec39gEfLnkHtMk11V23gwYPfKa3C6F88bbkD network=devnet
