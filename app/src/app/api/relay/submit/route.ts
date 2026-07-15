@@ -60,9 +60,25 @@ export async function POST(request: NextRequest) {
 
   transaction.partialSign(relayer);
 
-  const connection = getConnection();
-  const signature = await connection.sendRawTransaction(transaction.serialize());
-  await connection.confirmTransaction(signature, "confirmed");
+  try {
+    const connection = getConnection();
+    const signature = await connection.sendRawTransaction(transaction.serialize());
+    await connection.confirmTransaction(signature, "confirmed");
+    return NextResponse.json({ signature });
+  } catch (err) {
+    // The approval was marked consumed above, but nothing was actually
+    // confirmed to land - un-consume it so the caller can retry the exact
+    // same pre-signed transaction rather than losing the approval to a
+    // transient RPC/network failure and having to restart checkout from
+    // scratch. Safe to retry: Solana dedupes identical signed transactions,
+    // so if this one actually landed moments after a timed-out confirm, a
+    // resubmission is a harmless no-op rather than a double-charge.
+    await db
+      .update(sponsoredTransactions)
+      .set({ consumedAt: null })
+      .where(eq(sponsoredTransactions.messageHash, hash));
 
-  return NextResponse.json({ signature });
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ message: `failed to submit, please retry: ${message}` }, { status: 502 });
+  }
 }

@@ -194,11 +194,19 @@ export async function POST(
   transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
 
   const hash = messageHash(transaction);
-  await db.insert(sponsoredTransactions).values({
-    messageHash: hash,
-    feePayer: relayer.publicKey.toBase58(),
-    expiresAt: new Date(Date.now() + SPONSORSHIP_TTL_MS),
-  });
+  // onConflictDoNothing: two rapid identical requests (same instructions,
+  // same feePayer, same blockhash - e.g. a double-submitted click) hash to
+  // the same message. That's fine to treat as "already approved" rather
+  // than a hard failure, since the transaction content is identical either
+  // way; a plain insert would otherwise throw on the unique constraint.
+  await db
+    .insert(sponsoredTransactions)
+    .values({
+      messageHash: hash,
+      feePayer: relayer.publicKey.toBase58(),
+      expiresAt: new Date(Date.now() + SPONSORSHIP_TTL_MS),
+    })
+    .onConflictDoNothing();
 
   const response: ActionPostResponse & { orderPda: string; relaySubmitUrl: string } = {
     type: "transaction",
