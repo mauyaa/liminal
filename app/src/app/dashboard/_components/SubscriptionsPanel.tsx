@@ -21,7 +21,7 @@ interface Subscriber {
   subscriptionPda: string;
 }
 
-const DEFAULT_MINT = "6VKhkPbAPs2esWsQA6BifCLyBuLzPAAuyWUK5TQ3aDQs"; // devnet demo mint
+const DEFAULT_MINT = "AUMiaz7S6rxn2E36tSpFyNcQwfZ5FroeesU4XMHngpNZ"; // devnet demo mint
 
 const PERIOD_OPTIONS = [
   { label: "Daily", hours: 24 },

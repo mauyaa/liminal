@@ -11,7 +11,7 @@ delivery deadline passes, at which point it's automatically refundable.
 - Merchant dashboard: https://app-eight-lovat-94.vercel.app/dashboard
 - Agent-discovery catalog: https://app-eight-lovat-94.vercel.app/.well-known/agent-pay
 - Program (devnet): `AHJnF6Ppec39gEfLnkHtMk11V23gwYPfKa3C6F88bbkD`
-- Demo mint (devnet, 6 decimals): `6VKhkPbAPs2esWsQA6BifCLyBuLzPAAuyWUK5TQ3aDQs`
+- Demo mint (devnet, 6 decimals): `AUMiaz7S6rxn2E36tSpFyNcQwfZ5FroeesU4XMHngpNZ`
 
 Devnet only — no real funds, no mainnet deployment.
 
@@ -119,6 +119,18 @@ app/                      Next.js app: Actions/Blinks API + UI + DB schema
   src/app/api/webhooks/poll/       GET: autonomously re-syncs in-flight
                                     orders and fires webhooks for changes -
                                     see "Merchant webhooks" below
+  src/app/api/orders/              GET: order history by buyer or merchant
+                                    wallet - see "Order lifecycle API" below
+  src/app/api/orders/[orderPda]/   GET: order detail (DB + live on-chain).
+                                    POST settle/: buyer confirms receipt.
+                                    POST refund/: permissionless timeout
+                                    refund
+  src/app/api/refunds/poll/        GET: autonomously refunds every expired
+                                    escrow via the relayer - see "Order
+                                    lifecycle API & autonomous refunds"
+  src/app/api/merchant/stats/      GET: merchant dashboard aggregates
+  src/lib/rate-limit.ts            DB-backed fixed-window rate limiter -
+                                    see "Rate limiting" below
   src/app/api/mobile/checkout/     GET: starts a Phantom deeplink checkout
                                     session for a mobile/Telegram caller -
                                     see "Mobile & Telegram deep-link
@@ -510,6 +522,107 @@ Reads directly from the same DB the checkout flow itself uses (verified
 against the live production deployment, not a mock), so it can't drift out
 of sync with what's actually purchasable.
 
+## Order lifecycle API & autonomous refunds
+
+The checkout API could originally *start* an escrow (fund) but never finish
+one - there was no route for the buyer to confirm receipt, none to trigger
+a timeout refund, and no way to list or inspect orders. This closes the
+loop; the full lifecycle is now drivable end to end over HTTP:
+
+- `GET /api/orders?buyerWallet=` / `?merchantWallet=` - purchase history
+  for a buyer, or every order across a merchant's listings.
+- `GET /api/orders/[orderPda]` - one order's DB row merged with live
+  on-chain state (status, buyer, principal, delivery deadline, and a
+  computed `refundableNow`).
+- `POST /api/orders/[orderPda]/settle` - unsigned `settle_order` tx for the
+  buyer to sign: confirm receipt, release funds to the seller.
+- `POST /api/orders/[orderPda]/refund` - unsigned `refund_order` tx for any
+  payer (refunds are permissionless on-chain past the deadline; funds
+  always return to the recorded buyer).
+- `GET /api/refunds/poll` - the autonomous half: every order still FUNDED
+  whose on-chain deadline has passed gets refunded by the relayer
+  directly - built, signed, and submitted server-side, no buyer action at
+  all. This makes the protocol's core promise ("automatically refundable
+  after the deadline") actually automatic rather than a manual claim the
+  buyer has to know to make. Same CRON_SECRET gate and scheduling model as
+  the other two poll endpoints; skips gracefully when no relayer is
+  configured; syncs the DB and fires the merchant webhook through the same
+  `syncOrder` path as everything else.
+
+Every transaction-building route now also **simulates before returning**
+(`assertSimulates` in `src/lib/solana/program.ts`): a transaction this API
+hands out is never one that's already doomed on-chain. Added after a real
+incident - see "Program upgrades vs. existing accounts" below - and it
+doubles as decent UX: a collect that isn't due yet, or a buyer with an
+insufficient balance, now gets a clear API error naming the on-chain
+reason instead of a transaction that fails after signing.
+
+**How this was verified.** A full end-to-end run against real devnet with
+three fresh throwaway wallets: create listing → fund → **settle via the
+new endpoint** (seller's token balance confirmed increased by exactly the
+principal; a second settle attempt correctly rejected 409); create a
+5-second-window listing → fund → wait → **`/api/refunds/poll` autonomously
+refunded it** (buyer's balance confirmed restored to the pre-purchase
+amount with zero buyer interaction; a second poll correctly found nothing
+to do; unauthenticated poll correctly 401s); history/detail/stats
+endpoints asserted against both flows' final states.
+
+## Rate limiting
+
+The README previously flagged the relayer as an open target ("no
+rate-limiting or abuse protection... needs that before going live"). That
+gap is now closed with a DB-backed fixed-window limiter
+(`src/lib/rate-limit.ts` + the `rate_limits` table) - DB-backed because
+this deploys serverless, where in-memory counters reset per cold start and
+don't share across concurrent instances. One atomic upsert per check, so
+concurrent instances can't race past the limit; fail-open on DB errors so
+a broken limiter degrades to "no limiting" rather than taking checkout
+down.
+
+Applied where abuse actually costs something: `/api/relay/submit` (spends
+relayer SOL - 10/min per IP), the sponsored branch of
+`/api/actions/buy/[sku]` (commits the relayer to future spend - 6/min per
+IP *and* per buyer wallet), and `/api/mobile/checkout` (writes a session
+row per hit - 10/min per IP). Verified live in production: 10 requests
+accepted, the 11th returns 429.
+
+## Program upgrades vs. existing accounts
+
+A real incident from this build, kept here because the lesson is the
+single most important operational rule for running an Anchor program in
+production:
+
+Deploying the oracle-settlement upgrade to devnet silently bricked every
+account created under the previously-deployed binary. The upgrade was
+"additive" relative to source - but the deployed binary was several
+versions behind, so accounts it had created (`UnifiedVault`, the demo
+`OrderState`) were smaller than the new structs, and every instruction
+touching them started failing `AccountDidNotDeserialize`. Worse, nothing
+surfaced: the API built and returned transactions without simulating them,
+so the failure only existed at wallet-submit time, where nobody was
+looking.
+
+What this repo now does about it, and what a mainnet deployment must do:
+
+1. **Every built transaction is simulated before it's returned** (see
+   above) - layout breakage now surfaces as an immediate, loud API error.
+2. Devnet-only state was recreated rather than migrated (new mint + vault
+   + listing under the current layout; the orphaned old accounts hold no
+   recoverable funds - the old demo order was never funded).
+3. A mainnet deployment can't take option 2. Before any
+   layout-changing upgrade it needs a migration instruction (realloc +
+   rewrite old accounts), or versioned account discriminators, or strictly
+   append-only layouts with reserved padding from day one - and a
+   pre-deploy check that the on-chain binary being replaced actually
+   matches the source revision the "diff" was computed against.
+
+## Merchant stats
+
+`GET /api/merchant/stats?merchantWallet=` - order counts by status, settled
+volume, and listing/plan/subscriber counts for a merchant dashboard
+header. Pure DB reads over state the sync/poll machinery already keeps
+current.
+
 ## sRFC-35 domain manifest
 
 `app/public/.well-known/solana.txt` associates this deployment's domain with
@@ -618,11 +731,25 @@ deployment with a fresh throwaway mint: `initialize_vault` →
 `initialize_oracle_config` → `initialize_listing` → `fund_order` →
 a real Ed25519-signed attestation → `settle_order_with_oracle` - landing as
 an actual devnet transaction, confirmed settled, seller's token balance
-confirmed increased by the principal. The existing checkout flow
-(`/api/actions/buy/liminal-demo-1`) was re-checked against production
-immediately afterward and confirmed unaffected - the upgrade is additive
-only (a new `OracleConfig` PDA type, no changes to `UnifiedVault` or
-`OrderState`'s existing layout).
+confirmed increased by the principal.
+
+**Correction - this upgrade DID break pre-upgrade accounts.** An earlier
+version of this section claimed the upgrade was "additive only" and left
+the existing checkout unaffected. That was wrong, and the error is worth
+recording rather than erasing: the check performed at the time (fetching
+Blink metadata and building a transaction) exercised neither
+deserialization of the old vault nor a real funding, so it couldn't catch
+what had actually happened. The upgrade was additive *relative to current
+source*, but the previously-deployed devnet binary predated the Kamino
+yield fields - so the vault and demo-order accounts created under it were
+smaller than the upgraded program's `UnifiedVault`/`OrderState` structs,
+and every attempt to fund the old demo listing failed on-chain with
+`AccountDidNotDeserialize` while the API kept happily handing out doomed
+transactions. Caught by the backend end-to-end suite (which actually funds
+orders), root-caused, and fixed by recreating the devnet demo state (new
+mint `AUMiaz7S6rxn2E36tSpFyNcQwfZ5FroeesU4XMHngpNZ`, new vault, new
+listing) under the current layout - see "Program upgrades vs. existing
+accounts" below for the durable lessons.
 
 **Honest scope note - what this is and isn't.** This instruction's own
 on-chain verification logic is real, complete, and tested exactly as a
@@ -760,6 +887,18 @@ Turso database and `SOLANA_RPC_URL=https://api.devnet.solana.com`.
 
 ## Verification performed
 
+- Order lifecycle + autonomous refunds: full E2E against real devnet with
+  three fresh throwaway wallets — fund → settle via the new endpoint
+  (seller balance +principal exactly, double-settle 409s), fund → deadline
+  → `/api/refunds/poll` autonomously refunded (buyer balance restored to
+  the pre-purchase amount, second poll idempotent, unauthenticated poll
+  401s), history/detail/stats endpoints asserted against both final
+  states, and the relay rate limit confirmed cutting in at exactly its
+  configured threshold. Re-verified against live production after
+  deploying: the repaired demo checkout returns a simulation-clean
+  transaction for a funded buyer, correctly refuses one for an unfunded
+  buyer with the on-chain reason, and production `/api/relay/submit`
+  429s on the 11th request in a minute.
 - `anchor test`: 10/10 passing — the original 6 (full lifecycle,
   double-settle rejection, wrong-signer rejection, premature-refund
   rejection, timeout refund) plus 4 new oracle-settlement cases (valid

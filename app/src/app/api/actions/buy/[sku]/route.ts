@@ -12,15 +12,18 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { products, merchants, sponsoredTransactions } from "@/lib/db/schema";
 import {
+  assertSimulates,
   buildUnsignedTransaction,
   getConnection,
   getProgram,
   marketItemIdToBn,
   orderStatePda,
+  SimulationError,
   unifiedVaultPda,
   vaultTokenPda,
 } from "@/lib/solana/program";
 import { getRelayerKeypair, messageHash, RELAYER_FEE_BASE_UNITS, SPONSORSHIP_TTL_MS } from "@/lib/solana/relayer";
+import { isRateLimited, rateLimitedResponse, requestIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -152,10 +155,18 @@ export async function POST(
   const sponsored = request.nextUrl.searchParams.get("sponsored") === "true";
 
   if (!sponsored) {
-    const transaction = await buildUnsignedTransaction(connection, buyer, [
-      createAssociatedTokenAccountIdempotentInstruction(buyer, buyerAta, buyer, mint),
-      fundIx,
-    ]);
+    let transaction: string;
+    try {
+      transaction = await buildUnsignedTransaction(connection, buyer, [
+        createAssociatedTokenAccountIdempotentInstruction(buyer, buyerAta, buyer, mint),
+        fundIx,
+      ]);
+    } catch (err) {
+      if (err instanceof SimulationError) {
+        return NextResponse.json({ message: err.message }, { status: 502, headers: ACTIONS_CORS_HEADERS });
+      }
+      throw err;
+    }
 
     const response: ActionPostResponse & { orderPda: string } = {
       type: "transaction",
@@ -171,6 +182,16 @@ export async function POST(
   // whole point is the buyer needs zero SOL), reimbursed in the mint's
   // smallest unit via a flat fee. See relayer.ts and README's "Gasless
   // checkout" section.
+  // Rate-limited per IP and per buyer wallet: each approval here commits
+  // the relayer to spending SOL if submitted, so this - not the free
+  // non-sponsored branch above - is the abuse surface worth gating.
+  if (
+    (await isRateLimited("sponsor-ip", requestIp(request), 6, 60)) ||
+    (await isRateLimited("sponsor-wallet", buyer.toBase58(), 6, 60))
+  ) {
+    return rateLimitedResponse(ACTIONS_CORS_HEADERS);
+  }
+
   let relayer;
   try {
     relayer = getRelayerKeypair();
@@ -192,6 +213,15 @@ export async function POST(
   const transaction = new Transaction().add(...instructions);
   transaction.feePayer = relayer.publicKey;
   transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+
+  try {
+    await assertSimulates(connection, transaction);
+  } catch (err) {
+    if (err instanceof SimulationError) {
+      return NextResponse.json({ message: err.message }, { status: 502, headers: ACTIONS_CORS_HEADERS });
+    }
+    throw err;
+  }
 
   const hash = messageHash(transaction);
   // onConflictDoNothing: two rapid identical requests (same instructions,

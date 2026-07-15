@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { products, merchants, phantomSessions } from "@/lib/db/schema";
 import { generateDappKeyPair, encodeKey, buildConnectUrl } from "@/lib/solana/phantom-deeplink";
+import { isRateLimited, rateLimitedResponse, requestIp } from "@/lib/rate-limit";
 
 /**
  * Entry point for checkout inside a context with no browser-extension
@@ -13,6 +14,11 @@ import { generateDappKeyPair, encodeKey, buildConnectUrl } from "@/lib/solana/ph
  * `/buy/[sku]` uses.
  */
 export async function GET(request: NextRequest) {
+  // Each hit writes a phantom_sessions row, so gate before any work.
+  if (await isRateLimited("mobile-checkout", requestIp(request), 10, 60)) {
+    return rateLimitedResponse();
+  }
+
   const sku = request.nextUrl.searchParams.get("sku");
   if (!sku) {
     return NextResponse.json({ message: "sku query param is required" }, { status: 400 });

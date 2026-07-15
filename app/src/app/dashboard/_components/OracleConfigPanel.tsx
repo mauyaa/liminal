@@ -11,7 +11,7 @@ interface OracleStatus {
   authority?: string;
 }
 
-const DEFAULT_MINT = "6VKhkPbAPs2esWsQA6BifCLyBuLzPAAuyWUK5TQ3aDQs"; // devnet demo mint
+const DEFAULT_MINT = "AUMiaz7S6rxn2E36tSpFyNcQwfZ5FroeesU4XMHngpNZ"; // devnet demo mint
 
 export default function OracleConfigPanel() {
   const { connection } = useConnection();

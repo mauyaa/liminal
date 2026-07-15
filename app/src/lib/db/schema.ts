@@ -164,6 +164,19 @@ export const phantomSessions = sqliteTable(
   (table) => [uniqueIndex("phantom_sessions_token_idx").on(table.token)]
 );
 
+/**
+ * Fixed-window rate-limit counters, keyed `${scope}:${identifier}:${window}`.
+ * DB-backed because this deploys serverless - in-memory counters reset on
+ * every cold start and don't share across concurrent instances. Rows are
+ * dead once their window passes; the limiter opportunistically deletes
+ * expired ones.
+ */
+export const rateLimits = sqliteTable("rate_limits", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull().default(1),
+  windowEndsAt: integer("window_ends_at", { mode: "timestamp" }).notNull(),
+});
+
 export const merchantsRelations = relations(merchants, ({ many }) => ({
   products: many(products),
   subscriptionPlans: many(subscriptionPlans),
