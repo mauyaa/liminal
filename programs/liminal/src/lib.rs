@@ -84,4 +84,18 @@ pub mod liminal {
     pub fn refund_order_yield(ctx: Context<RefundOrderYield>, market_item_id: u64) -> Result<()> {
         crate::instructions::refund_order_yield::handle_refund_order_yield(ctx, market_item_id)
     }
+
+    pub fn initialize_oracle_config(
+        ctx: Context<InitializeOracleConfig>,
+        oracle_pubkey: Pubkey,
+    ) -> Result<()> {
+        crate::instructions::initialize_oracle_config::handle_initialize_oracle_config(ctx, oracle_pubkey)
+    }
+
+    pub fn settle_order_with_oracle(
+        ctx: Context<SettleOrderWithOracle>,
+        market_item_id: u64,
+    ) -> Result<()> {
+        crate::instructions::settle_order_with_oracle::handle_settle_order_with_oracle(ctx, market_item_id)
+    }
 }

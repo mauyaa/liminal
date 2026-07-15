@@ -23,6 +23,13 @@ custom-panic = []
 [dependencies]
 anchor-lang = "1.1.2"
 anchor-spl = { version = "1.1.2", features = ["token"] }
+# Both already pulled in transitively via anchor-lang at these exact
+# versions (see Cargo.lock) - listed explicitly because anchor-lang 1.1.2's
+# own `solana_program` re-export module doesn't include the instructions
+# sysvar or the Ed25519 program's address, unlike older anchor-lang
+# versions most examples online are written against.
+solana-instructions-sysvar = "3.0.1"
+solana-sdk-ids = "3.1.0"
 
 
 [lints.rust]

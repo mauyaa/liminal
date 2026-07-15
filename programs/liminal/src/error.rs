@@ -12,4 +12,10 @@ pub enum LiminalError {
     DeadlineNotReached,
     #[msg("This vault was not configured for Kamino yield routing.")]
     YieldNotEnabled,
+    #[msg("Settlement requires a preceding Ed25519 signature-verification instruction in the same transaction.")]
+    MissingOracleAttestation,
+    #[msg("The oracle attestation's signed message did not match this order and delivery status.")]
+    InvalidOracleAttestation,
+    #[msg("The attestation was signed by a key other than this vault's configured oracle.")]
+    UntrustedOracle,
 }
