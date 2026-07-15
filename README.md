@@ -9,6 +9,7 @@ delivery deadline passes, at which point it's automatically refundable.
 - App: https://app-eight-lovat-94.vercel.app
 - Demo checkout: https://app-eight-lovat-94.vercel.app/buy/liminal-demo-1
 - Merchant dashboard: https://app-eight-lovat-94.vercel.app/dashboard
+- Agent-discovery catalog: https://app-eight-lovat-94.vercel.app/.well-known/agent-pay
 - Program (devnet): `AHJnF6Ppec39gEfLnkHtMk11V23gwYPfKa3C6F88bbkD`
 - Demo mint (devnet, 6 decimals): `6VKhkPbAPs2esWsQA6BifCLyBuLzPAAuyWUK5TQ3aDQs`
 
@@ -57,6 +58,9 @@ tests/liminal-yield.ts    Kamino yield-routing tests (mocha, real cloned
                            routing" below, not part of `anchor test`)
 app/                      Next.js app: Actions/Blinks API + UI + DB schema
   public/actions.json        Actions routing manifest
+  src/app/.well-known/agent-pay/  GET: live agent-commerce discovery
+                                    catalog - see "Agent-commerce
+                                    discovery" below
   src/app/page.tsx           Landing page
   src/app/buy/[sku]/         Public checkout page (connect wallet, pay)
   src/app/dashboard/         Merchant dashboard (create listings, view orders)
@@ -440,6 +444,28 @@ just the client-triggered one.
   header automatically when the env var is set, so wiring a `vercel.json`
   cron entry to either endpoint needs no extra plumbing.
 
+## Agent-commerce discovery
+
+`GET /.well-known/agent-pay` is a live, machine-readable catalog of every
+active listing and subscription plan across all merchants, each with the
+real Actions endpoint that executes it. Both merchant-facing reference
+documents reviewed during this build named an agent-discovery manifest as
+speculative future work ("AI procurement agents... over Liminal's headless
+payment network") rather than something actually built - this is a real,
+present-day implementation of that idea instead of a placeholder for it.
+
+It's deliberately just a catalog index, not a new transaction protocol: an
+automated client (an AI purchasing agent, a price-comparison bot, or a
+plain script) that can already build and sign a Solana transaction from a
+Solana Actions POST response needs nothing beyond what's already
+documented above (`actions.json` + the Actions spec) - this only solves
+*discovery* of what's for sale, at what price, and where to check out,
+without requiring out-of-band knowledge of specific SKUs or plan ids.
+
+Reads directly from the same DB the checkout flow itself uses (verified
+against the live production deployment, not a mock), so it can't drift out
+of sync with what's actually purchasable.
+
 ## Prerequisites
 
 - Rust + Solana CLI + Anchor CLI (this was developed against Anchor 1.1.2 /
@@ -523,3 +549,10 @@ Turso database and `SOLANA_RPC_URL=https://api.devnet.solana.com`.
   calling `/sync`, called `/poll`, and confirmed it autonomously detected
   the change and delivered a correctly-signed `order.settled` webhook. See
   "Merchant webhooks" above.
+- All of the above, plus the agent-discovery manifest, confirmed working
+  against the actual live production deployment (not just local dev) after
+  redeploying - `GET /.well-known/agent-pay` returns the real current demo
+  listing with correct checkout URLs, `/api/merchant/plans` and
+  `/api/webhooks/poll` correctly hit the production Turso DB, and
+  `/api/subscriptions/poll` correctly reports itself as unconfigured
+  (`RELAYER_SECRET_KEY` isn't set in production) instead of erroring.
