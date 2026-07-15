@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "liminal-app-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "app", "run", "dev"],
+      "port": 3000,
+      "autoPort": true
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import type { Liminal } from "./idl/liminal";
 export const VAULT_SEED = Buffer.from("liminal-vault");
 export const VAULT_TOKEN_SEED = Buffer.from("liminal-vault-token");
 export const ORDER_SEED = Buffer.from("order-state");
+export const ORACLE_CONFIG_SEED = Buffer.from("oracle-config");
 
 export const RPC_URL = process.env.SOLANA_RPC_URL ?? "http://127.0.0.1:8899";
 
@@ -56,6 +57,10 @@ export function unifiedVaultPda(programId: PublicKey, mint: PublicKey): PublicKe
 
 export function vaultTokenPda(programId: PublicKey, mint: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync([VAULT_TOKEN_SEED, mint.toBuffer()], programId)[0];
+}
+
+export function oracleConfigPda(programId: PublicKey, mint: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync([ORACLE_CONFIG_SEED, mint.toBuffer()], programId)[0];
 }
 
 /** Builds a base64-encoded, unsigned transaction for a wallet to sign client-side. */

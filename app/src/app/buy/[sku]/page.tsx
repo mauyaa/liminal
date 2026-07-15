@@ -6,11 +6,17 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Transaction } from "@solana/web3.js";
 
+interface ActionLink {
+  label: string;
+  href: string;
+}
+
 interface Listing {
   title: string;
   description: string;
   icon: string;
   label: string;
+  links?: { actions: ActionLink[] };
 }
 
 type PayState = "idle" | "signing" | "sending" | "confirmed" | "error";
@@ -22,6 +28,7 @@ export default function BuyPage() {
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [gasless, setGasless] = useState(false);
   const [payState, setPayState] = useState<PayState>("idle");
   const [payError, setPayError] = useState<string | null>(null);
   const [signature, setSignature] = useState<string | null>(null);
@@ -36,12 +43,16 @@ export default function BuyPage() {
       .catch((err) => setLoadError(err.message));
   }, [sku]);
 
+  const normalAction = listing?.links?.actions?.[0];
+  const sponsoredAction = listing?.links?.actions?.[1];
+
   const handlePay = useCallback(async () => {
     if (!publicKey || !signTransaction) return;
     setPayError(null);
     setPayState("signing");
     try {
-      const res = await fetch(`/api/actions/buy/${sku}`, {
+      const href = gasless && sponsoredAction ? sponsoredAction.href : `/api/actions/buy/${sku}`;
+      const res = await fetch(href, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ account: publicKey.toBase58() }),
@@ -52,9 +63,29 @@ export default function BuyPage() {
       const tx = Transaction.from(Buffer.from(body.transaction, "base64"));
       const signed = await signTransaction(tx);
 
-      setPayState("sending");
-      const sig = await connection.sendRawTransaction(signed.serialize());
-      await connection.confirmTransaction(sig, "confirmed");
+      let sig: string;
+      if (gasless && body.relaySubmitUrl) {
+        // The relayer, not the buyer, is fee payer here - the buyer's
+        // signature is only a partial one, so the relayer's own submit
+        // route countersigns and broadcasts it, not this client.
+        setPayState("sending");
+        const relayRes = await fetch(body.relaySubmitUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            transaction: signed
+              .serialize({ requireAllSignatures: false, verifySignatures: false })
+              .toString("base64"),
+          }),
+        });
+        const relayBody = await relayRes.json();
+        if (!relayRes.ok) throw new Error(relayBody.message ?? "Failed to submit sponsored transaction");
+        sig = relayBody.signature;
+      } else {
+        setPayState("sending");
+        sig = await connection.sendRawTransaction(signed.serialize());
+        await connection.confirmTransaction(sig, "confirmed");
+      }
 
       await fetch("/api/orders/sync", {
         method: "POST",
@@ -68,7 +99,7 @@ export default function BuyPage() {
       setPayError(err instanceof Error ? err.message : "Payment failed");
       setPayState("error");
     }
-  }, [publicKey, signTransaction, connection, sku]);
+  }, [publicKey, signTransaction, connection, sku, gasless, sponsoredAction]);
 
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-24">
@@ -91,6 +122,17 @@ export default function BuyPage() {
             <div className="flex flex-col gap-3 border-t border-border pt-6">
               <WalletMultiButton />
 
+              {sponsoredAction && payState !== "confirmed" && (
+                <label className="flex items-center gap-2 text-sm text-muted">
+                  <input
+                    type="checkbox"
+                    checked={gasless}
+                    onChange={(e) => setGasless(e.target.checked)}
+                  />
+                  Pay gas fees for me (no SOL needed)
+                </label>
+              )}
+
               {publicKey && payState !== "confirmed" && (
                 <button
                   onClick={handlePay}
@@ -101,7 +143,9 @@ export default function BuyPage() {
                     ? "Confirm in wallet…"
                     : payState === "sending"
                       ? "Sending…"
-                      : listing.label}
+                      : gasless && sponsoredAction
+                        ? sponsoredAction.label
+                        : (normalAction?.label ?? listing.label)}
                 </button>
               )}
 

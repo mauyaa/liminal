@@ -9,6 +9,20 @@ interface SetWebhookBody {
   webhookUrl: string;
 }
 
+/** Reads a merchant's current webhook URL - never returns the secret. */
+export async function GET(request: NextRequest) {
+  const merchantWallet = request.nextUrl.searchParams.get("merchantWallet");
+  if (!merchantWallet) {
+    return NextResponse.json({ message: "merchantWallet query param is required" }, { status: 400 });
+  }
+
+  const merchant = await db.query.merchants.findFirst({
+    where: eq(merchants.wallet, merchantWallet),
+  });
+
+  return NextResponse.json({ webhookUrl: merchant?.webhookUrl ?? null });
+}
+
 /**
  * Sets (or updates) a merchant's webhook URL. A signing secret is generated
  * the first time a merchant configures a webhook and kept stable across
