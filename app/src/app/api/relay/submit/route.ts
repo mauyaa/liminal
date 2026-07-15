@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import { sponsoredTransactions } from "@/lib/db/schema";
 import { getConnection } from "@/lib/solana/program";
 import { getRelayerKeypair, messageHash } from "@/lib/solana/relayer";
+import { isRateLimited, rateLimitedResponse, requestIp } from "@/lib/rate-limit";
 
 /**
  * Co-signs and broadcasts a sponsored transaction as the relayer's own fee
@@ -14,6 +15,13 @@ import { getRelayerKeypair, messageHash } from "@/lib/solana/relayer";
  * transaction handed to it, and never twice.
  */
 export async function POST(request: NextRequest) {
+  // Rate-limited before any parsing: this endpoint spends the relayer's SOL
+  // and is the most abuse-sensitive surface in the API (see README's
+  // "Gasless checkout" scope notes, which this closes out).
+  if (await isRateLimited("relay-submit", requestIp(request), 10, 60)) {
+    return rateLimitedResponse();
+  }
+
   const body = (await request.json().catch(() => null)) as { transaction?: string } | null;
   if (!body?.transaction) {
     return NextResponse.json({ message: "transaction is required" }, { status: 400 });

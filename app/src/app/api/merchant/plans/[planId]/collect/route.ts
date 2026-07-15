@@ -8,7 +8,7 @@ import {
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { subscriptionPlans, merchants } from "@/lib/db/schema";
-import { buildUnsignedTransaction, getConnection } from "@/lib/solana/program";
+import { buildUnsignedTransaction, getConnection, SimulationError } from "@/lib/solana/program";
 import { collectSubscriptionIx } from "@/lib/solana/subscriptions";
 
 interface CollectBody {
@@ -86,7 +86,18 @@ export async function POST(
   );
 
   const connection = getConnection();
-  const transaction = await buildUnsignedTransaction(connection, caller, instructions);
+  let transaction: string;
+  try {
+    transaction = await buildUnsignedTransaction(connection, caller, instructions);
+  } catch (err) {
+    // Most commonly: the current period was already collected, or isn't due
+    // yet - the program rejects it, so simulation catches it here instead
+    // of handing the caller a transaction that can only fail.
+    if (err instanceof SimulationError) {
+      return NextResponse.json({ message: err.message }, { status: 409 });
+    }
+    throw err;
+  }
 
   return NextResponse.json({ transaction });
 }

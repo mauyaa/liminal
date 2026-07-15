@@ -63,6 +63,26 @@ export function oracleConfigPda(programId: PublicKey, mint: PublicKey): PublicKe
   return PublicKey.findProgramAddressSync([ORACLE_CONFIG_SEED, mint.toBuffer()], programId)[0];
 }
 
+/** A built transaction that simulation says would fail on-chain. */
+export class SimulationError extends Error {}
+
+/**
+ * Simulates before returning: a transaction this API hands out should never
+ * be one that's already doomed on-chain. Added after a real incident - a
+ * program upgrade broke deserialization of pre-upgrade accounts, and the
+ * checkout API kept happily returning transactions that could only fail,
+ * with nothing surfacing until a wallet actually submitted one.
+ */
+export async function assertSimulates(connection: Connection, transaction: Transaction): Promise<void> {
+  const sim = await connection.simulateTransaction(transaction);
+  if (sim.value.err) {
+    const logs = (sim.value.logs ?? []).slice(-4).join(" | ");
+    throw new SimulationError(
+      `transaction would fail on-chain: ${JSON.stringify(sim.value.err)}${logs ? ` (${logs})` : ""}`
+    );
+  }
+}
+
 /** Builds a base64-encoded, unsigned transaction for a wallet to sign client-side. */
 export async function buildUnsignedTransaction(
   connection: Connection,
@@ -73,6 +93,7 @@ export async function buildUnsignedTransaction(
   transaction.feePayer = feePayer;
   const { blockhash } = await connection.getLatestBlockhash();
   transaction.recentBlockhash = blockhash;
+  await assertSimulates(connection, transaction);
   return transaction
     .serialize({ requireAllSignatures: false, verifySignatures: false })
     .toString("base64");
