@@ -48,16 +48,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "no subscription found on-chain for this plan and subscriber" }, { status: 404 });
   }
 
-  const existing = await db.query.subscriptionSubscribers.findFirst({
-    where: eq(subscriptionSubscribers.subscriptionPda, subscriptionPda.toBase58()),
-  });
-  if (!existing) {
-    await db.insert(subscriptionSubscribers).values({
+  // onConflictDoNothing rather than check-then-insert: two concurrent sync
+  // calls for the same subscription would otherwise have a race window
+  // where both pass the "not yet cached" check before either insert lands,
+  // and the second insert throws on the unique constraint.
+  await db
+    .insert(subscriptionSubscribers)
+    .values({
       planId: plan.id,
       subscriberWallet: body.subscriber,
       subscriptionPda: subscriptionPda.toBase58(),
-    });
-  }
+    })
+    .onConflictDoNothing();
 
   return NextResponse.json({ subscriptionPda: subscriptionPda.toBase58() });
 }

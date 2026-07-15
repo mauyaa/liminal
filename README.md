@@ -360,7 +360,13 @@ transaction, get repaid in-band) doesn't need a standalone relayer service.
   broadcasts a transaction whose message hash matches an unexpired,
   not-yet-consumed pre-approval record for its own pubkey - never an
   arbitrary transaction handed to it - and marks the record consumed
-  before broadcasting, so the same approval can't be replayed.
+  before broadcasting, so the same approval can't be replayed. If the
+  actual broadcast/confirm then fails (a transient RPC hiccup, not an
+  invalid transaction), the consumed mark is reverted so the identical
+  already-signed transaction can be retried instead of forcing the buyer
+  to restart checkout from scratch - safe because Solana dedupes identical
+  signed transactions, so a retry after a false-negative confirm timeout
+  is a harmless no-op rather than a double-charge.
 
 **How this was verified.** A full devnet run with a freshly generated
 buyer keypair holding *exactly* zero SOL: minted it some devnet USDC (rent
