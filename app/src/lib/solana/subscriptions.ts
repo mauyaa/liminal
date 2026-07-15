@@ -15,6 +15,7 @@ import {
   findSubscriptionDelegationPda,
   fetchMaybePlan,
   fetchMaybeSubscriptionAuthority,
+  fetchMaybeSubscriptionDelegation,
   getCreatePlanOverlayInstructionAsync,
   getInitSubscriptionAuthorityOverlayInstructionAsync,
   getSubscribeOverlayInstructionAsync,
@@ -219,6 +220,29 @@ export async function collectSubscriptionIx(params: {
     amount: terms.amount,
   });
   return toWeb3Instruction(ix);
+}
+
+/**
+ * Whether a subscription is due for a collect right now, read directly from
+ * its live on-chain state - not a replacement for the on-chain program's own
+ * enforcement in `transfer_subscription` (which remains authoritative and is
+ * still checked on every collect), just a cheap precheck so an autonomous
+ * poller doesn't waste a transaction (and a devnet/mainnet fee) attempting
+ * collects that are obviously not due yet.
+ */
+export async function isSubscriptionDueForCollect(subscriptionPda: PublicKey): Promise<boolean> {
+  const account = await fetchMaybeSubscriptionDelegation(kitRpc, toAddress(subscriptionPda));
+  if (!account.exists) return false;
+
+  const nowSecs = BigInt(Math.floor(Date.now() / 1000));
+  const { expiresAtTs, currentPeriodStartTs, amountPulledInPeriod, terms } = account.data;
+
+  if (expiresAtTs !== BigInt(0) && nowSecs >= expiresAtTs) return false; // cancelled and past its paid-through period
+
+  const periodLengthSecs = terms.periodHours * BigInt(3600);
+  const periodEnd = currentPeriodStartTs + periodLengthSecs;
+  const alreadyCollectedThisPeriod = nowSecs < periodEnd && amountPulledInPeriod >= terms.amount;
+  return !alreadyCollectedThisPeriod;
 }
 
 export async function cancelSubscriptionIx(params: {

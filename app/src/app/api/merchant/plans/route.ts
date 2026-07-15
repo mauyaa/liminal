@@ -6,6 +6,7 @@ import { db } from "@/lib/db/client";
 import { merchants, subscriptionPlans } from "@/lib/db/schema";
 import { buildUnsignedTransaction, getConnection } from "@/lib/solana/program";
 import { createPlanIx, planPda } from "@/lib/solana/subscriptions";
+import { getRelayerKeypair } from "@/lib/solana/relayer";
 
 interface CreatePlanBody {
   merchantWallet: string;
@@ -83,6 +84,17 @@ export async function POST(request: NextRequest) {
   const planId = BigInt(plan.id);
   const planAddress = await planPda(owner, planId);
 
+  // The relayer is registered as an additional puller (alongside the
+  // merchant themselves) when configured, so /api/subscriptions/poll can
+  // autonomously collect payments without the merchant signing each one.
+  // Degrades gracefully to merchant-only pulling if no relayer is set up.
+  const pullers = [owner];
+  try {
+    pullers.push(getRelayerKeypair().publicKey);
+  } catch {
+    // no relayer configured - merchant remains the sole puller
+  }
+
   const ix = await createPlanIx({
     owner,
     planId,
@@ -90,7 +102,7 @@ export async function POST(request: NextRequest) {
     amount: BigInt(body.amountBaseUnits),
     periodHours: BigInt(body.periodHours),
     destinations: [owner],
-    pullers: [owner],
+    pullers,
     tokenProgram: TOKEN_PROGRAM_ID,
   });
 

@@ -96,6 +96,22 @@ export const subscriptionPlans = sqliteTable(
   (table) => [uniqueIndex("subscription_plans_plan_pda_idx").on(table.planPda)]
 );
 
+export const subscriptionSubscribers = sqliteTable(
+  "subscription_subscribers",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    planId: integer("plan_id")
+      .notNull()
+      .references(() => subscriptionPlans.id),
+    subscriberWallet: text("subscriber_wallet").notNull(),
+    subscriptionPda: text("subscription_pda").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [uniqueIndex("subscription_subscribers_pda_idx").on(table.subscriptionPda)]
+);
+
 export const sponsoredTransactions = sqliteTable(
   "sponsored_transactions",
   {
@@ -119,8 +135,13 @@ export const merchantsRelations = relations(merchants, ({ many }) => ({
   subscriptionPlans: many(subscriptionPlans),
 }));
 
-export const subscriptionPlansRelations = relations(subscriptionPlans, ({ one }) => ({
+export const subscriptionPlansRelations = relations(subscriptionPlans, ({ one, many }) => ({
   merchant: one(merchants, { fields: [subscriptionPlans.merchantId], references: [merchants.id] }),
+  subscribers: many(subscriptionSubscribers),
+}));
+
+export const subscriptionSubscribersRelations = relations(subscriptionSubscribers, ({ one }) => ({
+  plan: one(subscriptionPlans, { fields: [subscriptionSubscribers.planId], references: [subscriptionPlans.id] }),
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
