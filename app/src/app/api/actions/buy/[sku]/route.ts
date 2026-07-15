@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ACTIONS_CORS_HEADERS } from "@solana/actions";
 import type { ActionGetResponse, ActionPostRequest, ActionPostResponse } from "@solana/actions";
-import { PublicKey } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, createAssociatedTokenAccountIdempotentInstruction } from "@solana/spl-token";
+import { PublicKey, Transaction, TransactionInstruction } from "@solana/web3.js";
+import {
+  TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddressSync,
+  createAssociatedTokenAccountIdempotentInstruction,
+  createTransferInstruction,
+} from "@solana/spl-token";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { products, merchants } from "@/lib/db/schema";
+import { products, merchants, sponsoredTransactions } from "@/lib/db/schema";
 import {
   buildUnsignedTransaction,
   getConnection,
@@ -15,6 +20,7 @@ import {
   unifiedVaultPda,
   vaultTokenPda,
 } from "@/lib/solana/program";
+import { getRelayerKeypair, messageHash, RELAYER_FEE_BASE_UNITS, SPONSORSHIP_TTL_MS } from "@/lib/solana/relayer";
 
 export const runtime = "nodejs";
 
@@ -69,6 +75,11 @@ export async function GET(
           type: "transaction",
           label: `Buy for $${priceLabel}`,
           href: `${baseUrl}/api/actions/buy/${sku}`,
+        },
+        {
+          type: "transaction",
+          label: `Buy for $${priceLabel} (no SOL needed)`,
+          href: `${baseUrl}/api/actions/buy/${sku}?sponsored=true`,
         },
       ],
     },
@@ -138,16 +149,63 @@ export async function POST(
     })
     .instruction();
 
-  const transaction = await buildUnsignedTransaction(connection, buyer, [
-    createAssociatedTokenAccountIdempotentInstruction(buyer, buyerAta, buyer, mint),
-    fundIx,
-  ]);
+  const sponsored = request.nextUrl.searchParams.get("sponsored") === "true";
 
-  const response: ActionPostResponse & { orderPda: string } = {
+  if (!sponsored) {
+    const transaction = await buildUnsignedTransaction(connection, buyer, [
+      createAssociatedTokenAccountIdempotentInstruction(buyer, buyerAta, buyer, mint),
+      fundIx,
+    ]);
+
+    const response: ActionPostResponse & { orderPda: string } = {
+      type: "transaction",
+      transaction,
+      message: `Escrow ${listing.title} for $${(listing.priceUsdc / 1_000_000).toFixed(2)} until delivery is confirmed.`,
+      orderPda: orderState.toBase58(),
+    };
+
+    return NextResponse.json(response, { headers: ACTIONS_CORS_HEADERS });
+  }
+
+  // Sponsored: the relayer pays the SOL fee (and any ATA rent, since the
+  // whole point is the buyer needs zero SOL), reimbursed in the mint's
+  // smallest unit via a flat fee. See relayer.ts and README's "Gasless
+  // checkout" section.
+  let relayer;
+  try {
+    relayer = getRelayerKeypair();
+  } catch {
+    return NextResponse.json({ message: "sponsored checkout is not configured on this server" }, {
+      status: 404,
+      headers: ACTIONS_CORS_HEADERS,
+    });
+  }
+
+  const relayerAta = getAssociatedTokenAddressSync(mint, relayer.publicKey);
+  const instructions: TransactionInstruction[] = [
+    createAssociatedTokenAccountIdempotentInstruction(relayer.publicKey, relayerAta, relayer.publicKey, mint),
+    createAssociatedTokenAccountIdempotentInstruction(relayer.publicKey, buyerAta, buyer, mint),
+    fundIx,
+    createTransferInstruction(buyerAta, relayerAta, buyer, RELAYER_FEE_BASE_UNITS),
+  ];
+
+  const transaction = new Transaction().add(...instructions);
+  transaction.feePayer = relayer.publicKey;
+  transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+
+  const hash = messageHash(transaction);
+  await db.insert(sponsoredTransactions).values({
+    messageHash: hash,
+    feePayer: relayer.publicKey.toBase58(),
+    expiresAt: new Date(Date.now() + SPONSORSHIP_TTL_MS),
+  });
+
+  const response: ActionPostResponse & { orderPda: string; relaySubmitUrl: string } = {
     type: "transaction",
-    transaction,
-    message: `Escrow ${listing.title} for $${(listing.priceUsdc / 1_000_000).toFixed(2)} until delivery is confirmed.`,
+    transaction: transaction.serialize({ requireAllSignatures: false, verifySignatures: false }).toString("base64"),
+    message: `Escrow ${listing.title} for $${(listing.priceUsdc / 1_000_000).toFixed(2)} until delivery is confirmed. No SOL required - a relayer covers the network fee for a flat $${(RELAYER_FEE_BASE_UNITS / 1_000_000).toFixed(2)}.`,
     orderPda: orderState.toBase58(),
+    relaySubmitUrl: `${request.nextUrl.protocol}//${request.nextUrl.host}/api/relay/submit`,
   };
 
   return NextResponse.json(response, { headers: ACTIONS_CORS_HEADERS });

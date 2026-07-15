@@ -81,9 +81,14 @@ app/                      Next.js app: Actions/Blinks API + UI + DB schema
                                     "Subscriptions" below)
   src/app/api/subscriptions/[planId]/cancel/  POST: unsigned
                                     CancelSubscription tx for the subscriber
+  src/app/api/relay/submit/        POST: countersigns + broadcasts a
+                                    pre-approved sponsored (gasless) tx -
+                                    see "Gasless checkout" below
   src/lib/db/schema.ts       merchants / products / orders / subscriptionPlans
-                              (Drizzle)
+                              / sponsoredTransactions (Drizzle)
   src/lib/solana/program.ts  PDA derivation + Anchor client helpers
+  src/lib/solana/relayer.ts  Relayer keypair + message-hash helpers for
+                              gasless checkout, see "Gasless checkout" below
   src/lib/solana/subscriptions.ts  Bridges the `@solana/kit`-based
                               `@solana/subscriptions` SDK into plain
                               `@solana/web3.js` types - see "Subscriptions"
@@ -267,6 +272,62 @@ link. Collecting a period's payment is a manually-triggered endpoint here;
 a production deployment would put a scheduler behind it to pull payments
 automatically, which is out of scope for this pass. No mainnet deployment.
 
+## Gasless checkout
+
+A buyer with **zero SOL** can still complete a checkout: the Actions
+endpoint has a sponsored mode where a relayer keypair pays the network fee
+(and any ATA rent) and is reimbursed in the mint's own token, the same
+mechanic Octane/Kora-style relayers use. This isn't a wrapper around the
+Kora binary - it's a small, self-contained implementation of the same
+mechanic, since what Liminal needs (sponsor one specific pre-approved
+transaction, get repaid in-band) doesn't need a standalone relayer service.
+
+**How it works:**
+
+- `GET /api/actions/buy/[sku]` now lists two actions: the normal
+  buyer-pays-fees checkout, and a second one hitting
+  `?sponsored=true`.
+- In sponsored mode, the server builds the transaction with the relayer as
+  `feePayer` (so it - not the buyer - pays for both the buyer's ATA
+  creation and the transaction fee), appends a flat-fee token transfer from
+  the buyer's ATA to the relayer's ATA (`RELAYER_FEE_BASE_UNITS`, $0.01 at
+  6 decimals - a deliberately simple flat fee, not a cost-plus
+  calculation), and records a hash of the transaction's compiled message in
+  `sponsoredTransactions` with a 2-minute expiry - a pre-approval record,
+  not a signature.
+- The buyer's wallet partially signs (authorizing the escrow deposit and
+  the fee transfer - it never touches SOL) and posts the result to
+  `POST /api/relay/submit`, whose response the checkout call already
+  pointed at (`relaySubmitUrl`). That endpoint only ever countersigns and
+  broadcasts a transaction whose message hash matches an unexpired,
+  not-yet-consumed pre-approval record for its own pubkey - never an
+  arbitrary transaction handed to it - and marks the record consumed
+  before broadcasting, so the same approval can't be replayed.
+
+**How this was verified.** A full devnet run with a freshly generated
+buyer keypair holding *exactly* zero SOL: minted it some devnet USDC (rent
+for its ATA paid by the test setup, not the buyer, mirroring a real
+on-ramp), ran the sponsored checkout end to end, and confirmed the buyer's
+SOL balance was still exactly zero afterward, its token balance reflects
+the order price plus the flat relayer fee, and that replaying the same
+signed transaction against `/api/relay/submit` a second time is rejected.
+
+**Scope notes:**
+- This is opt-in per request (`?sponsored=true`), not the default -
+  existing checkout behavior is unchanged.
+- `RELAYER_SECRET_KEY` is a raw JSON-array secret key read from an env var
+  for this pass. That's fine for devnet; a real deployment moving real
+  money should not hold a live signing key in a plain env var - swap this
+  for a KMS or Kora-backed signer (see `src/lib/solana/relayer.ts`, which
+  is the one place that would need to change).
+- There's no rate-limiting or abuse protection on who can request
+  sponsorship - a production deployment needs that in front of this before
+  going live, since the relayer's SOL balance is otherwise an open target.
+- A generic Blink-rendering wallet won't automatically know to call
+  `relaySubmitUrl` - that's a custom field, not part of the Actions spec.
+  This is built for a caller (this repo's own frontend, or another client)
+  that knows to look for it, not for arbitrary wallet UIs out of the box.
+
 ## Prerequisites
 
 - Rust + Solana CLI + Anchor CLI (this was developed against Anchor 1.1.2 /
@@ -330,3 +391,9 @@ Turso database and `SOLANA_RPC_URL=https://api.devnet.solana.com`.
   merchant plan-listing check — all via real HTTP calls to a local dev
   server backed by a throwaway local DB (not the production Turso
   database) and real devnet transactions. See "Subscriptions" above.
+- Gasless checkout: a real devnet run with a freshly generated buyer
+  keypair holding exactly zero SOL — sponsored checkout completed, the
+  buyer's SOL balance confirmed still exactly zero afterward, its token
+  balance confirmed reflecting the order price plus the flat relayer fee,
+  and replaying an already-consumed sponsorship against `/api/relay/submit`
+  confirmed rejected. See "Gasless checkout" above.
