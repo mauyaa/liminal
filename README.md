@@ -27,17 +27,18 @@ This repository implements the **verifiable core** of the protocol:
   dashboard, both using the Solana wallet adapter to sign transactions
   client-side (the server only ever builds and returns unsigned transactions).
 
-**Implemented:** Kamino Lend yield routing on top of the core escrow (see
-below).
+**Implemented:** Kamino Lend yield routing on top of the core escrow, and
+recurring billing via the real Solana Foundation Subscriptions program (see
+below for both).
 
 **Deliberately not implemented yet:** the Switchboard TEE/zkTLS
-delivery-oracle settlement path, the mobile interstitial SDK, and the
-tokenomics/referral layer. Those integrate with external programs and
-services whose real interfaces weren't verified against in this session —
-building them against guessed account layouts would be the fastest way to
-lose escrowed funds later. The core here is a solid foundation to build them
-on incrementally, with each integration verified against the real target
-program before it touches real funds.
+delivery-oracle settlement path, gasless/sponsored transactions, the mobile
+interstitial SDK, and the tokenomics/referral layer. Those integrate with
+external programs and services whose real interfaces weren't verified
+against in this session — building them against guessed account layouts
+would be the fastest way to lose escrowed funds later. The core here is a
+solid foundation to build them on incrementally, with each integration
+verified against the real target program before it touches real funds.
 
 ## Repository layout
 
@@ -68,8 +69,25 @@ app/                      Next.js app: Actions/Blinks API + UI + DB schema
                                     initialize_vault tx (once per mint)
   src/app/api/orders/sync/         POST: re-read on-chain OrderState and
                                     sync the DB row to it
-  src/lib/db/schema.ts       merchants / products / orders (Drizzle)
+  src/app/api/merchant/plans/      POST: create a subscription plan, get
+                                    back an unsigned CreatePlan tx.
+                                    GET: list a merchant's plans
+  src/app/api/merchant/plans/[planId]/collect/  POST: unsigned
+                                    TransferSubscription (pull a period's
+                                    payment) tx for the merchant/puller
+  src/app/api/actions/subscribe/[planId]/  GET (Blink metadata) + POST
+                                    (build the InitSubscriptionAuthority
+                                    and/or Subscribe transaction, see
+                                    "Subscriptions" below)
+  src/app/api/subscriptions/[planId]/cancel/  POST: unsigned
+                                    CancelSubscription tx for the subscriber
+  src/lib/db/schema.ts       merchants / products / orders / subscriptionPlans
+                              (Drizzle)
   src/lib/solana/program.ts  PDA derivation + Anchor client helpers
+  src/lib/solana/subscriptions.ts  Bridges the `@solana/kit`-based
+                              `@solana/subscriptions` SDK into plain
+                              `@solana/web3.js` types - see "Subscriptions"
+                              below
   src/lib/solana/wallet-provider.tsx  Wallet adapter context (Phantom/Solflare, devnet)
   src/lib/solana/idl/        copied from target/idl + target/types after
                               `anchor build` — regenerate after program
@@ -167,6 +185,88 @@ mainnet-cloned validator setup above, not a plain `solana-test-validator`):
 anchor test --script test-yield
 ```
 
+## Subscriptions
+
+Recurring billing (merchant-published plans, buyer-approved allowances,
+periodic pulls) is wired against the real, audited Solana Foundation
+**Subscriptions & Allowances** program
+(`De1egAFMkMWZSN5rYXRj9CAdheBamobVNubTsi9avR44`, live on mainnet and devnet
+since June 2026) rather than a hand-rolled delegation scheme in `liminal`
+itself. This is a deliberate design choice, not just a shortcut: a
+recurring-pull delegation system is itself security-critical (it grants a
+third party standing SPL approval over a user's tokens), and the Solana
+Foundation's program is already audited (Cantina/Spearbit) and live -
+re-implementing and re-auditing the same primitive inside this repo would
+be worse, not more thorough. `liminal`'s own escrow program is untouched by
+this; the Next.js API layer just builds transactions that target the
+external program directly, the same way it already builds transactions
+targeting `liminal` itself.
+
+**How it works:**
+
+- A merchant calls `POST /api/merchant/plans` to publish a plan (price,
+  billing period, payout destination) via the program's `CreatePlan`
+  instruction. The plan's on-chain `plan_id` is the row's own DB id, cached
+  locally the same way listings cache `market_item_id`.
+- A buyer subscribes through `GET`/`POST /api/actions/subscribe/[planId]`
+  (a Solana Actions/Blink endpoint, same shape as the checkout flow). This
+  is a **two-step** flow for a first-time subscriber: the first `POST`
+  returns an `InitSubscriptionAuthority` transaction (approves the
+  program's per-mint delegate PDA for `u64::MAX`, standard for this
+  program - the PDA still can't move funds outside what an active
+  delegation explicitly authorizes); once that lands, the caller `POST`s
+  the same endpoint again and gets back the real `Subscribe` transaction,
+  bound to the plan's live on-chain terms (never a cached copy - a merchant
+  can update a plan after it was cached, and the program's own
+  `PlanTermsMismatch` check exists precisely to catch a subscriber signing
+  against stale terms). The response's `requiresFollowUp` field tells the
+  caller which step it just got.
+- `POST /api/merchant/plans/[planId]/collect` builds a `TransferSubscription`
+  pulling one period's payment; `POST /api/subscriptions/[planId]/cancel`
+  builds a `CancelSubscription`. Both bind to live on-chain state, not a
+  cache, for the same reason as subscribe.
+
+**Bridging two Solana JS stacks.** The official SDK
+(`@solana/subscriptions`) is a `@solana/kit` plugin, while the rest of this
+app is built on the older `@solana/web3.js` v1 (`@coral-xyz/anchor`,
+`@solana/wallet-adapter-react`). Rather than rewriting the app onto `kit`,
+`src/lib/solana/subscriptions.ts` is the single place both stacks touch:
+every exported function takes/returns plain `web3.js` `PublicKey` /
+`TransactionInstruction` types, converting to/from `kit`'s types
+internally (a `createNoopSigner` stand-in mirrors `program.ts`'s existing
+read-only Anchor wallet stub - the server only ever builds unsigned
+transactions, never signs). `@solana/kit` is pinned to `^6.10.0` to match
+what `@solana/subscriptions` actually peers against and was tested
+against, not whatever is newest.
+
+**How this was verified — real devnet, not guesses, and it caught a real
+bug.** Unlike Kamino, this program has a meaningful devnet deployment, so
+the full lifecycle was run against it directly: create a plan, initialize a
+subscription authority, subscribe, collect a period's payment, attempt (and
+correctly get rejected for) a second collect within the same billing
+period, cancel, and confirm the plan shows up in the merchant's listing —
+all against real transactions on `api.devnet.solana.com`, decoded from the
+program's real account layouts and instruction discriminators, not
+documentation. This caught a real design bug before it shipped: the first
+implementation bundled `InitSubscriptionAuthority` and `Subscribe` in one
+transaction using the program's `UNKNOWN_INIT_ID` "same-slot" sentinel
+(meant to let a first-time subscriber sign once instead of twice) - that
+was rejected on-chain by the live devnet deployment with a
+`StaleSubscriptionAuthority` error every time, for reasons not fully
+resolved against the cloned source. Rather than keep debugging a shortcut
+against unverified behavior of the exact deployed build, the design was
+changed to always bind `Subscribe` to a concrete, already-confirmed
+`init_id` read back from chain - the two-step flow described above - which
+is what was actually confirmed to work.
+
+**Scope note:** this is a simplified two-call pattern for a first-time
+subscriber, not full sRFC-32 action-chaining (`links.next`) - a caller
+needs to know to re-POST after the first transaction lands, communicated
+via the `requiresFollowUp` response field rather than an inline next-action
+link. Collecting a period's payment is a manually-triggered endpoint here;
+a production deployment would put a scheduler behind it to pull payments
+automatically, which is out of scope for this pass. No mainnet deployment.
+
 ## Prerequisites
 
 - Rust + Solana CLI + Anchor CLI (this was developed against Anchor 1.1.2 /
@@ -224,3 +324,9 @@ Turso database and `SOLANA_RPC_URL=https://api.devnet.solana.com`.
   routing" above for the full methodology. Re-ran the core `anchor test`
   suite afterward and confirmed 6/6 still passing — zero regression from
   the yield-routing additions.
+- Subscriptions: a full live lifecycle test against the real program on
+  devnet — create plan, init subscription authority, subscribe, collect,
+  a same-period double-collect correctly rejected on-chain, cancel, and a
+  merchant plan-listing check — all via real HTTP calls to a local dev
+  server backed by a throwaway local DB (not the production Turso
+  database) and real devnet transactions. See "Subscriptions" above.
