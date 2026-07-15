@@ -81,6 +81,11 @@ app/                      Next.js app: Actions/Blinks API + UI + DB schema
                                     "Subscriptions" below)
   src/app/api/subscriptions/[planId]/cancel/  POST: unsigned
                                     CancelSubscription tx for the subscriber
+  src/app/api/subscriptions/sync/  POST: caches a (plan, subscriber) pair
+                                    once its Subscribe tx has landed
+  src/app/api/subscriptions/poll/  GET: autonomously collects due
+                                    subscription payments - see
+                                    "Subscriptions" below
   src/app/api/relay/submit/        POST: countersigns + broadcasts a
                                     pre-approved sponsored (gasless) tx -
                                     see "Gasless checkout" below
@@ -89,7 +94,8 @@ app/                      Next.js app: Actions/Blinks API + UI + DB schema
                                     orders and fires webhooks for changes -
                                     see "Merchant webhooks" below
   src/lib/db/schema.ts       merchants / products / orders / subscriptionPlans
-                              / sponsoredTransactions (Drizzle)
+                              / subscriptionSubscribers / sponsoredTransactions
+                              (Drizzle)
   src/lib/solana/program.ts  PDA derivation + Anchor client helpers
   src/lib/solana/relayer.ts  Relayer keypair + message-hash helpers for
                               gasless checkout, see "Gasless checkout" below
@@ -274,9 +280,51 @@ is what was actually confirmed to work.
 subscriber, not full sRFC-32 action-chaining (`links.next`) - a caller
 needs to know to re-POST after the first transaction lands, communicated
 via the `requiresFollowUp` response field rather than an inline next-action
-link. Collecting a period's payment is a manually-triggered endpoint here;
-a production deployment would put a scheduler behind it to pull payments
-automatically, which is out of scope for this pass. No mainnet deployment.
+link. No mainnet deployment.
+
+**Automated billing pulls.** `POST /api/merchant/plans/[planId]/collect` is
+still there for a manually-triggered pull, but real recurring billing needs
+an automated puller - the program's own design assumes one, with `pullers`
+existing specifically so an address *other than* the merchant can be
+authorized to pull on their behalf. This repo wires that up rather than
+leaving it manual-only:
+
+- `POST /api/merchant/plans` registers the relayer keypair (the same one
+  gasless checkout uses, see "Gasless checkout" below) as an additional
+  `puller` on the plan at creation time, alongside the merchant. Degrades
+  gracefully to merchant-only pulling if no relayer is configured.
+- `POST /api/subscriptions/sync` caches a (plan, subscriber) pair once a
+  Subscribe transaction lands, the same "client tells the server what it
+  observed" pattern `/api/orders/sync` already uses.
+- `GET /api/subscriptions/poll` is the actual automation: for every cached
+  subscription, it reads the subscription's live on-chain state to check
+  whether it's actually due (comparing `currentPeriodStartTs` +
+  `periodHours` and `amountPulledInPeriod` against now - a cheap precheck,
+  not a replacement for the on-chain program's own enforcement, which still
+  runs on every attempt), and for anything due, builds, signs, and submits
+  a `TransferSubscription` fully server-side with the relayer as `caller` -
+  no merchant or subscriber signature needed at collection time at all.
+  Meant to be hit on a schedule, same as `/api/webhooks/poll`.
+
+**How this was verified.** A real devnet run with the relayer as a
+*separate* keypair from the merchant (funded independently) - deliberately
+not the same wallet, since that would trivially pass the plan's `can_pull`
+check regardless of whether the `pullers` wiring actually worked. Created a
+plan, subscribed, synced, then called `/api/subscriptions/poll` with zero
+further interaction from either the merchant or the subscriber: it
+correctly identified the first period's payment as due and collected it -
+confirmed by the subscriber's token balance actually decreasing - and a
+second immediate poll correctly skipped it as not yet due.
+
+**On cancellation timing** (this needed checking directly against the
+program's real source, since two different pieces of reference material
+disagreed on it): `CancelSubscription` does **not** block pulls
+immediately. It sets `expires_at_ts` to the end of the subscriber's
+*current already-paid-for* billing period - the merchant can still collect
+through that boundary, and only pulls attempted after it are rejected
+(`SubscriptionCancelled`). Confirmed by reading `cancel_subscription.rs`
+and `transfer_subscription.rs` directly rather than trusting either
+secondary description.
 
 ## Gasless checkout
 
@@ -453,6 +501,13 @@ Turso database and `SOLANA_RPC_URL=https://api.devnet.solana.com`.
   merchant plan-listing check — all via real HTTP calls to a local dev
   server backed by a throwaway local DB (not the production Turso
   database) and real devnet transactions. See "Subscriptions" above.
+- Automated subscription billing: a real devnet run with the relayer as a
+  keypair genuinely separate from the merchant — created a plan, subscribed,
+  synced, then called `/api/subscriptions/poll` with no further merchant or
+  subscriber interaction at all; confirmed it correctly identified the first
+  period's payment as due and collected it (subscriber's token balance
+  actually decreased), and that an immediate second poll correctly skipped
+  it as not yet due. See "Subscriptions" above.
 - Gasless checkout: a real devnet run with a freshly generated buyer
   keypair holding exactly zero SOL — sponsored checkout completed, the
   buyer's SOL balance confirmed still exactly zero afterward, its token
