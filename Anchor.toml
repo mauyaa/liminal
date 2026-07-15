@@ -16,7 +16,7 @@ wallet = "~/.config/solana/id.json"
 startup_wait = 20000
 
 [scripts]
-test = "npx ts-mocha -p ./tsconfig.json -t 1000000 tests/liminal.ts"
+test = "npx ts-mocha -p ./tsconfig.json -t 1000000 tests/liminal.ts tests/liminal-oracle.ts"
 # Requires a validator with real Kamino mainnet state cloned in - see
 # README.md's "Kamino yield routing" section. Not part of `anchor test`.
 test-yield = "npx ts-mocha -p ./tsconfig.json -t 1000000 tests/liminal-yield.ts"

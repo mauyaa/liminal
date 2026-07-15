@@ -12,6 +12,13 @@ pub const ORDER_SEED: &[u8] = b"order-state";
 #[constant]
 pub const ORDER_KTOKEN_SEED: &[u8] = b"order-ktoken";
 
+#[constant]
+pub const ORACLE_CONFIG_SEED: &[u8] = b"oracle-config";
+
+/// Message tag a trusted oracle signs alongside the order's PDA address to
+/// attest delivery - see `settle_order_with_oracle`.
+pub const DELIVERY_ATTESTATION_TAG: &[u8] = b"DELIVERED";
+
 /// Kamino Lend (klend) mainnet program. There is no meaningful Kamino
 /// deployment on devnet, so vaults with `yield_enabled = true` only make
 /// sense against a mainnet deployment of this program.

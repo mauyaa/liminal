@@ -69,3 +69,22 @@ pub enum EscrowStatus {
     Settled,
     Refunded,
 }
+
+/// Per-mint config naming the pubkey trusted to sign delivery attestations
+/// for `settle_order_with_oracle`. A separate, additive account rather than
+/// a new `UnifiedVault` field, so existing already-deployed vaults don't
+/// need to change layout to get this. In production this pubkey would be a
+/// registered Switchboard TEE enclave's attestation key; here it's just a
+/// configurable trusted signer, set once by the vault's authority.
+#[account]
+pub struct OracleConfig {
+    pub authority: Pubkey,     // 32: who may update oracle_pubkey
+    pub mint: Pubkey,          // 32
+    pub oracle_pubkey: Pubkey, // 32: trusted Ed25519 attestor
+    pub bump: u8,              // 1
+}
+
+impl OracleConfig {
+    pub const SPACE: usize = 8 // discriminator
+        + 32 + 32 + 32 + 1;
+}
