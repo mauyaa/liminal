@@ -66,8 +66,38 @@ export const orders = sqliteTable(
   (table) => [uniqueIndex("orders_order_pda_idx").on(table.orderPda)]
 );
 
+export const subscriptionPlans = sqliteTable(
+  "subscription_plans",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    merchantId: integer("merchant_id")
+      .notNull()
+      .references(() => merchants.id),
+    title: text("title").notNull(),
+    description: text("description"),
+    imageUrl: text("image_url").notNull(),
+    // smallest unit (e.g. 6 decimals for USDC), charged once per period
+    amountBaseUnits: integer("amount_base_units").notNull(),
+    periodHours: integer("period_hours").notNull(),
+    mint: text("mint").notNull(),
+    // u64 on-chain; stored as a decimal string to avoid JS number precision
+    // loss, same convention as products.marketItemId. Parse with BigInt(...).
+    planId: text("plan_id").notNull(),
+    planPda: text("plan_pda").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [uniqueIndex("subscription_plans_plan_pda_idx").on(table.planPda)]
+);
+
 export const merchantsRelations = relations(merchants, ({ many }) => ({
   products: many(products),
+  subscriptionPlans: many(subscriptionPlans),
+}));
+
+export const subscriptionPlansRelations = relations(subscriptionPlans, ({ one }) => ({
+  merchant: one(merchants, { fields: [subscriptionPlans.merchantId], references: [merchants.id] }),
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
