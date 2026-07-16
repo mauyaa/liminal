@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { MERCHANT_STATUS } from "./shared";
 
 interface OrderRow {
   orderPda: string;
@@ -50,11 +51,13 @@ export default function OrdersPanel() {
         </button>
       </div>
       <p className="text-sm text-muted">
-        FUNDED means a buyer&apos;s payment is in escrow - your cue to deliver. SETTLED means
-        the funds were released to you.
+        <span className="font-medium text-foreground">&quot;Paid — deliver&quot; means deliver
+        now</span>{" "}
+        — the money is locked in escrow waiting on you. &quot;Paid out&quot; means it&apos;s
+        yours.
       </p>
       {orders.length === 0 ? (
-        <p className="text-sm text-muted">No orders yet.</p>
+        <p className="text-sm text-muted">No orders yet. Share a checkout link to get your first one.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {orders.map((o) => (
@@ -75,7 +78,7 @@ export default function OrdersPanel() {
                   </span>
                 </div>
                 <span className="rounded-full border border-border px-2.5 py-1 text-[11px] tracking-wide text-muted">
-                  {o.escrowStatus}
+                  {MERCHANT_STATUS[o.escrowStatus] ?? o.escrowStatus}
                 </span>
               </Link>
             </li>

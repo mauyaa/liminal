@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { Transaction } from "@solana/web3.js";
-import { inputClass } from "./shared";
+import { inputClass, MERCHANT_STATUS } from "./shared";
 
 interface Listing {
   sku: string;
@@ -98,7 +98,9 @@ export default function ListingsPanel() {
         const sig = await connection.sendRawTransaction(signed.serialize());
         await connection.confirmTransaction(sig, "confirmed");
 
-        setFormSuccess(`Listing "${form.sku}" created and confirmed on-chain.`);
+        setFormSuccess(
+          `Listing live. Share your checkout link: ${window.location.origin}/buy/${form.sku} — or embed it on any site from /embed.`
+        );
         setForm((f) => ({ ...f, sku: "", title: "", description: "", imageUrl: "", priceUsd: "" }));
         refreshListings();
       } catch (err) {
@@ -122,13 +124,18 @@ export default function ListingsPanel() {
             value={form.storeName}
             onChange={(e) => setForm((f) => ({ ...f, storeName: e.target.value }))}
           />
-          <input
-            required
-            placeholder="SKU (unique)"
-            className={inputClass}
-            value={form.sku}
-            onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
-          />
+          <div className="flex flex-col gap-1">
+            <input
+              required
+              placeholder="SKU (unique)"
+              className={inputClass}
+              value={form.sku}
+              onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
+            />
+            <span className="text-[11px] leading-4 text-muted">
+              Becomes your checkout link: /buy/your-sku
+            </span>
+          </div>
           <input
             required
             placeholder="Title"
@@ -159,23 +166,33 @@ export default function ListingsPanel() {
             value={form.priceUsd}
             onChange={(e) => setForm((f) => ({ ...f, priceUsd: e.target.value }))}
           />
-          <input
-            required
-            type="number"
-            step="1"
-            min="1"
-            placeholder="Delivery window (hours)"
-            className={inputClass}
-            value={form.deliveryWindowHours}
-            onChange={(e) => setForm((f) => ({ ...f, deliveryWindowHours: e.target.value }))}
-          />
-          <input
-            required
-            placeholder="Stablecoin mint address"
-            className={`${inputClass} col-span-2 font-mono text-xs`}
-            value={form.mint}
-            onChange={(e) => setForm((f) => ({ ...f, mint: e.target.value }))}
-          />
+          <div className="flex flex-col gap-1">
+            <input
+              required
+              type="number"
+              step="1"
+              min="1"
+              placeholder="Delivery window (hours)"
+              className={inputClass}
+              value={form.deliveryWindowHours}
+              onChange={(e) => setForm((f) => ({ ...f, deliveryWindowHours: e.target.value }))}
+            />
+            <span className="text-[11px] leading-4 text-muted">
+              Your delivery promise — buyers auto-refund if unconfirmed past this.
+            </span>
+          </div>
+          <div className="col-span-2 flex flex-col gap-1">
+            <input
+              required
+              placeholder="Stablecoin mint address"
+              className={`${inputClass} font-mono text-xs`}
+              value={form.mint}
+              onChange={(e) => setForm((f) => ({ ...f, mint: e.target.value }))}
+            />
+            <span className="text-[11px] leading-4 text-muted">
+              Devnet demo token — leave as-is unless you know why.
+            </span>
+          </div>
         </div>
 
         <button
@@ -195,7 +212,7 @@ export default function ListingsPanel() {
           Your listings {loadingListings && <span className="text-muted">(refreshing…)</span>}
         </h2>
         {listings.length === 0 ? (
-          <p className="text-sm text-muted">No listings yet.</p>
+          <p className="text-sm text-muted">No listings yet. Your first one takes about a minute.</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {listings.map((l) => (
@@ -212,7 +229,7 @@ export default function ListingsPanel() {
                   </span>
                 </div>
                 <span className="rounded-full border border-border px-2.5 py-1 text-[11px] tracking-wide text-muted">
-                  {l.escrowStatus ?? "UNKNOWN"}
+                  {MERCHANT_STATUS[l.escrowStatus ?? ""] ?? l.escrowStatus ?? "Unknown"}
                 </span>
               </li>
             ))}

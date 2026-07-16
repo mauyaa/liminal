@@ -26,9 +26,9 @@ export default function StatsHeader() {
 
   if (!stats) return null;
 
-  const cards = [
+  const cards: { label: string; value: string | number; sub?: string }[] = [
     { label: "Settled volume", value: `$${(stats.settledVolumeBaseUnits / 1_000_000).toFixed(2)}` },
-    { label: "In escrow", value: stats.ordersByStatus.FUNDED ?? 0 },
+    { label: "In escrow", value: stats.ordersByStatus.FUNDED ?? 0, sub: "waiting on delivery" },
     { label: "Settled", value: stats.ordersByStatus.SETTLED ?? 0 },
     { label: "Listings", value: stats.listings },
     { label: "Subscribers", value: stats.subscribers },
@@ -40,6 +40,7 @@ export default function StatsHeader() {
         <div key={c.label} className="flex flex-col gap-0.5 rounded-lg border border-border px-3 py-2.5">
           <span className="text-[11px] tracking-wide text-muted">{c.label}</span>
           <span className="text-lg font-semibold tracking-tight">{c.value}</span>
+          {c.sub && <span className="text-[10px] leading-3 text-muted">{c.sub}</span>}
         </div>
       ))}
     </div>

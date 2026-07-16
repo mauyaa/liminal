@@ -17,10 +17,37 @@ interface Listing {
   description: string;
   icon: string;
   label: string;
+  deliveryWindowSeconds?: number;
   links?: { actions: ActionLink[] };
 }
 
 type PayState = "idle" | "signing" | "sending" | "confirmed" | "error";
+
+function windowLabel(seconds?: number): string {
+  if (!seconds || seconds <= 0) return "the delivery window";
+  const hours = Math.round(seconds / 3600);
+  if (hours < 1) return `${Math.round(seconds / 60)} minutes`;
+  if (hours % 24 === 0) return hours === 24 ? "24 hours" : `${hours / 24} days`;
+  return `${hours} hours`;
+}
+
+/** Map raw wallet/API failures to guide-voice copy; raw detail stays as fine print. */
+function friendlyPayError(raw: string): { headline: string; detail?: string } {
+  const lower = raw.toLowerCase();
+  if (lower.includes("user rejected") || lower.includes("rejected the request")) {
+    return { headline: "No problem — nothing was charged. Ready when you are." };
+  }
+  if (lower.includes("insufficient") || lower.includes('"custom":1')) {
+    return {
+      headline: "Your wallet doesn't have enough of this token. Top up and try again.",
+      detail: raw,
+    };
+  }
+  return {
+    headline: "That didn't go through — nothing was charged. Try again in a moment.",
+    detail: raw,
+  };
+}
 
 export default function BuyPage() {
   const { sku } = useParams<{ sku: string }>();
@@ -31,7 +58,7 @@ export default function BuyPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [gasless, setGasless] = useState(false);
   const [payState, setPayState] = useState<PayState>("idle");
-  const [payError, setPayError] = useState<string | null>(null);
+  const [payError, setPayError] = useState<{ headline: string; detail?: string } | null>(null);
   const [signature, setSignature] = useState<string | null>(null);
   const [orderPda, setOrderPda] = useState<string | null>(null);
 
@@ -99,7 +126,7 @@ export default function BuyPage() {
       setOrderPda(body.orderPda ?? null);
       setPayState("confirmed");
     } catch (err) {
-      setPayError(err instanceof Error ? err.message : "Payment failed");
+      setPayError(friendlyPayError(err instanceof Error ? err.message : "Payment failed"));
       setPayState("error");
     }
   }, [publicKey, signTransaction, connection, sku, gasless, sponsoredAction]);
@@ -122,17 +149,36 @@ export default function BuyPage() {
               <p className="text-sm leading-6 text-muted">{listing.description}</p>
             </div>
 
+            <div className="rounded-lg border border-border bg-foreground/[0.03] px-4 py-3">
+              <p className="text-[13px] leading-5 text-muted">
+                <span className="font-medium text-foreground">🔒 Protected purchase</span> — the
+                seller is paid only when you confirm delivery. Not delivered within{" "}
+                {windowLabel(listing.deliveryWindowSeconds)}? You&apos;re refunded automatically.
+              </p>
+            </div>
+
             <div className="flex flex-col gap-3 border-t border-border pt-6">
               <WalletMultiButton />
+              {!publicKey && (
+                <p className="text-[13px] text-muted">
+                  You approve the payment in your own wallet. Liminal never holds your keys — no
+                  sign-up, your wallet is your account.
+                </p>
+              )}
 
-              {sponsoredAction && payState !== "confirmed" && (
-                <label className="flex items-center gap-2 text-sm text-muted">
-                  <input
-                    type="checkbox"
-                    checked={gasless}
-                    onChange={(e) => setGasless(e.target.checked)}
-                  />
-                  Pay gas fees for me (no SOL needed)
+              {sponsoredAction && payState !== "confirmed" && publicKey && (
+                <label className="flex flex-col gap-0.5 text-sm">
+                  <span className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={gasless}
+                      onChange={(e) => setGasless(e.target.checked)}
+                    />
+                    Pay network fees for me (no SOL needed)
+                  </span>
+                  <span className="pl-5 text-[12px] text-muted">
+                    A relayer covers the network fee for a flat $0.01, added to your total.
+                  </span>
                 </label>
               )}
 
@@ -143,7 +189,7 @@ export default function BuyPage() {
                   className="inline-flex h-11 items-center justify-center rounded-full bg-foreground px-6 text-sm font-medium text-background transition-opacity hover:opacity-85 disabled:opacity-50"
                 >
                   {payState === "signing"
-                    ? "Confirm in wallet…"
+                    ? "Confirm in your wallet…"
                     : payState === "sending"
                       ? "Sending…"
                       : gasless && sponsoredAction
@@ -154,14 +200,18 @@ export default function BuyPage() {
 
               {payState === "confirmed" && signature && (
                 <div className="flex flex-col gap-2 text-sm">
-                  <p className="text-green-600 dark:text-green-400">
-                    Escrow funded. Refundable automatically if unconfirmed after the
-                    delivery window.
+                  <p className="font-medium text-green-600 dark:text-green-400">
+                    Payment protected.
+                  </p>
+                  <p className="text-muted">
+                    Your payment is in escrow — the seller has been notified to deliver. Confirm
+                    receipt when it arrives, or do nothing and get refunded automatically after
+                    the delivery window.
                   </p>
                   {orderPda && (
                     <Link
                       href={`/orders/${orderPda}`}
-                      className="inline-flex h-10 w-fit items-center justify-center rounded-full border border-border px-5 text-sm font-medium transition-colors hover:bg-foreground/5"
+                      className="inline-flex h-10 w-fit items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background transition-opacity hover:opacity-85"
                     >
                       Track this order
                     </Link>
@@ -177,7 +227,14 @@ export default function BuyPage() {
                 </div>
               )}
 
-              {payError && <p className="text-sm text-red-500">{payError}</p>}
+              {payError && (
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm text-red-500">{payError.headline}</p>
+                  {payError.detail && (
+                    <p className="break-all text-[11px] text-muted">{payError.detail}</p>
+                  )}
+                </div>
+              )}
             </div>
           </>
         )}
