@@ -58,9 +58,10 @@ export default function WebhookSettingsPanel() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <h2 className="text-sm font-medium tracking-tight">Webhook</h2>
-      <p className="text-sm text-muted">
-        Get notified when one of your orders or subscriptions changes state, instead of
-        polling. Delivery is HMAC-signed with a secret generated the first time you set a URL.
+      <p className="text-sm leading-6 text-muted">
+        Get a signed POST whenever an order or subscription changes state — no polling. Every
+        delivery is signed with a secret created the first time you save a URL; verify it
+        server-side before trusting the payload.
       </p>
       <input
         type="url"

@@ -31,7 +31,9 @@ export async function GET(request: NextRequest) {
   if (errorCode) {
     const errorMessage = params.get("errorMessage") ?? "transaction rejected";
     await db.update(phantomSessions).set({ status: "failed", errorMessage }).where(eq(phantomSessions.id, session.id));
-    return htmlPage(`<h2>Checkout cancelled</h2><p>${errorMessage}</p>`);
+    return htmlPage(
+      `<h2>Nothing was charged.</h2><p>You declined in Phantom — safe to close this page.</p><p style="color:#6b6b6b;font-size:13px;">${errorMessage}</p>`
+    );
   }
 
   const nonce = params.get("nonce");
@@ -47,6 +49,6 @@ export async function GET(request: NextRequest) {
 
   const explorerUrl = `https://explorer.solana.com/tx/${signature}?cluster=devnet`;
   return htmlPage(
-    `<h2>Escrow funded</h2><p>Your payment is held in escrow until delivery is confirmed.</p><p><a href="${explorerUrl}">View transaction</a></p>`
+    `<h2>Payment protected.</h2><p>Your order is in escrow — the seller pays out only on confirmed delivery.</p><p><a href="${explorerUrl}">View on Explorer</a></p>`
   );
 }

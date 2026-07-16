@@ -33,7 +33,9 @@ export default function DashboardPage() {
         </div>
 
         {!publicKey ? (
-          <p className="text-sm text-muted">Connect a devnet wallet to manage your store.</p>
+          <p className="text-sm text-muted">
+            Connect a devnet wallet to run your store. No sign-up — your wallet is your account.
+          </p>
         ) : (
           <>
             <StatsHeader />

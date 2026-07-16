@@ -15,6 +15,14 @@ interface OrderRow {
   createdAt: string;
 }
 
+/** Buyer-language status vocabulary - see docs/ux-copy-guide.md. */
+const BUYER_STATUS: Record<string, string> = {
+  INITIALIZED: "Not yet purchased",
+  FUNDED: "Payment protected",
+  SETTLED: "Complete",
+  REFUNDED: "Refunded",
+};
+
 export default function OrdersPage() {
   const { publicKey } = useWallet();
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -51,7 +59,8 @@ export default function OrdersPage() {
           <p className="text-sm text-muted">Loading…</p>
         ) : orders.length === 0 ? (
           <p className="text-sm text-muted">
-            No orders yet for this wallet. Orders appear here after a purchase is synced.
+            No orders yet for this wallet. Everything you buy through Liminal shows up here with
+            live escrow status.
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
@@ -68,7 +77,7 @@ export default function OrdersPage() {
                     </span>
                   </div>
                   <span className="rounded-full border border-border px-2.5 py-1 text-[11px] tracking-wide text-muted">
-                    {o.escrowStatus}
+                    {BUYER_STATUS[o.escrowStatus] ?? o.escrowStatus}
                   </span>
                 </Link>
               </li>

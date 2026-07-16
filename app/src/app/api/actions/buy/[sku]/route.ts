@@ -37,6 +37,7 @@ async function findListing(sku: string) {
       priceUsdc: products.priceUsdc,
       mint: products.mint,
       marketItemId: products.marketItemId,
+      deliveryWindowSeconds: products.deliveryWindowSeconds,
       sellerWallet: merchants.wallet,
     })
     .from(products)
@@ -66,12 +67,16 @@ export async function GET(
   const priceLabel = (listing.priceUsdc / 1_000_000).toFixed(2);
   const baseUrl = `${request.nextUrl.protocol}//${request.nextUrl.host}`;
 
-  const payload: ActionGetResponse = {
+  // deliveryWindowSeconds rides along as an extra field (harmless to
+  // spec-compliant Actions clients) so the checkout page can state the
+  // delivery promise before the deadline exists on-chain.
+  const payload: ActionGetResponse & { deliveryWindowSeconds: number } = {
     type: "action",
     icon: listing.imageUrl,
     title: listing.title,
     description: listing.description ?? `Zero-fee escrowed checkout for ${listing.title}.`,
     label: `Buy for $${priceLabel}`,
+    deliveryWindowSeconds: listing.deliveryWindowSeconds,
     links: {
       actions: [
         {

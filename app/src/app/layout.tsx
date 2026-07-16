@@ -21,7 +21,14 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <SolanaWalletProvider>{children}</SolanaWalletProvider>
+        <SolanaWalletProvider>
+          {children}
+          <footer className="flex justify-center px-6 pb-6">
+            <p className="text-[11px] tracking-wide text-muted">
+              DEVNET — test money. Nothing here is real value.
+            </p>
+          </footer>
+        </SolanaWalletProvider>
       </body>
     </html>
   );

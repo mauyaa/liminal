@@ -246,8 +246,12 @@ export default function SubscriptionsPanel() {
         <h2 className="text-sm font-medium tracking-tight">
           Your plans {loadingPlans && <span className="text-muted">(refreshing…)</span>}
         </h2>
+        <p className="text-[13px] text-muted">
+          Collections also run automatically — &quot;Collect&quot; is the manual override, not a
+          chore.
+        </p>
         {plans.length === 0 ? (
-          <p className="text-sm text-muted">No plans yet.</p>
+          <p className="text-sm text-muted">No plans yet. Recurring revenue takes about a minute to set up.</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {plans.map((p) => (

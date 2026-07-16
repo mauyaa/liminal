@@ -147,8 +147,22 @@ export default function SubscribePage() {
               <p className="text-sm leading-6 text-muted">{plan.description}</p>
             </div>
 
+            <div className="rounded-lg border border-border bg-foreground/[0.03] px-4 py-3">
+              <p className="text-[13px] leading-5 text-muted">
+                You&apos;re authorizing this plan to collect its price once per billing period.
+                Cancel anytime — cancellation is enforced on-chain, not by the merchant&apos;s
+                goodwill.
+              </p>
+            </div>
+
             <div className="flex flex-col gap-3 border-t border-border pt-6">
               <WalletMultiButton />
+              {publicKey && subState === "idle" && (
+                <p className="text-[12px] text-muted">
+                  First time subscribing with this wallet? You&apos;ll approve twice — step 1 is a
+                  one-time setup of your subscription account, step 2 is the subscription itself.
+                </p>
+              )}
 
               {publicKey && subState !== "confirmed" && (
                 <button
@@ -157,18 +171,19 @@ export default function SubscribePage() {
                   className="inline-flex h-11 items-center justify-center rounded-full bg-foreground px-6 text-sm font-medium text-background transition-opacity hover:opacity-85 disabled:opacity-50"
                 >
                   {subState === "authorizing"
-                    ? "Setting up authority…"
+                    ? "Setting up (1/2)…"
                     : subState === "subscribing"
-                      ? "Subscribing…"
+                      ? "Subscribing (2/2)…"
                       : plan.label}
                 </button>
               )}
 
               {subState === "confirmed" && signature && (
                 <div className="flex flex-col gap-1 text-sm">
-                  <p className="text-green-600 dark:text-green-400">
-                    Subscribed. The merchant (or their relayer) can now collect each
-                    period&apos;s payment automatically.
+                  <p className="font-medium text-green-600 dark:text-green-400">Subscribed.</p>
+                  <p className="text-muted">
+                    Each period&apos;s payment collects automatically. Manage it right here,
+                    anytime.
                   </p>
                   <a
                     href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
@@ -193,11 +208,13 @@ export default function SubscribePage() {
                     {cancelState === "cancelling" ? "Cancelling…" : "Cancel subscription"}
                   </button>
                   <p className="text-[13px] text-muted">
-                    Takes effect at the end of your current billing period, not immediately.
+                    Takes effect at the end of your current paid period — you keep what you paid
+                    for, and nothing collects after.
                   </p>
                   {cancelState === "cancelled" && (
                     <p className="text-sm text-green-600 dark:text-green-400">
-                      Cancellation confirmed - no further periods will be collected after the current one.
+                      Cancellation confirmed on-chain. No further payments can be collected after
+                      this period.
                     </p>
                   )}
                   {cancelError && <p className="text-sm text-red-500">{cancelError}</p>}
