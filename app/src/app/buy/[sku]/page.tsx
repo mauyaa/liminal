@@ -136,10 +136,10 @@ export default function BuyPage() {
             <div className="grid lg:grid-cols-[1.08fr_.92fr]">
               <div className="p-7 sm:p-11 lg:border-r lg:border-border">
                 <p className="text-[11px] font-semibold text-muted">You’re paying for</p>
-                <h1 className="mt-5 max-w-xl font-serif text-5xl leading-[.91] tracking-[-.055em] sm:text-7xl">{listing.title}</h1>
+                <h1 className="mt-5 max-w-xl font-serif text-3xl leading-[1] tracking-[-.045em] sm:text-4xl">{listing.title}</h1>
                 <p className="mt-5 max-w-lg text-sm leading-6 text-muted">{listing.description}</p>
                 <div className="mt-12 flex items-end justify-between border-b border-border pb-7">
-                  <strong className="font-serif text-6xl font-normal leading-none tracking-[-.06em]">{(normalAction?.label ?? listing.label).replace("Buy for ", "")}</strong>
+                  <strong className="font-serif text-4xl font-normal leading-none tracking-[-.05em]">{(normalAction?.label ?? listing.label).replace("Buy for ", "")}</strong>
                   <span className="pb-1 text-xs font-semibold">USDC</span>
                 </div>
                 <dl className="mt-5 text-[12px]">
@@ -151,7 +151,7 @@ export default function BuyPage() {
               </div>
 
               <div className="flex flex-col bg-[#ded8ce] p-7 sm:p-10">
-                <h2 className="font-serif text-4xl leading-[.95] tracking-[-.045em]">{publicKey ? "Approve the escrow payment." : "Connect your paying wallet."}</h2>
+                <h2 className="font-serif text-3xl leading-[1] tracking-[-.04em]">{publicKey ? "Approve the escrow payment." : "Connect your paying wallet."}</h2>
                 <p className="mt-4 text-[13px] leading-6 text-muted">{publicKey ? "Review the amount once more, then approve it in your wallet. Liminal cannot access your keys." : "No account or password. Your wallet identifies this purchase and keeps it available in your order history."}</p>
 
                 <div className="mt-8 flex flex-col gap-4">

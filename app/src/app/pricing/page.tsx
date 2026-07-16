@@ -69,7 +69,7 @@ export default function PricingPage() {
             >
               <div className="flex flex-col gap-1">
                 <span className="text-sm font-medium">{t.name}</span>
-                <span className="font-serif text-4xl tracking-[-.045em]">{t.price}</span>
+                <span className="font-serif text-3xl tracking-[-.04em]">{t.price}</span>
                 {t.fee && <span className="text-[12px] text-muted">{t.fee}</span>}
                 <span className="text-[12px] text-muted">{t.who}</span>
               </div>

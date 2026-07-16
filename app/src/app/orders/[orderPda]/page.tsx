@@ -175,7 +175,7 @@ export default function OrderPage() {
 
               {status === "FUNDED" && !refundable && (
                 <div className="flex flex-col gap-1">
-                  <p className="font-serif text-4xl leading-[.95] tracking-[-.045em]">Your payment is protected in escrow.</p>
+                  <p className="font-serif text-3xl leading-[1] tracking-[-.04em]">Your payment is protected in escrow.</p>
                   <p className="mt-4 max-w-xl text-[13px] leading-6 text-muted">
                     Once your order arrives, confirm below to release the payment. Not delivered
                     by <span className="font-medium text-foreground">{deadline > 0 ? new Date(deadline * 1000).toLocaleString() : "the deadline"}</span>?
@@ -186,7 +186,7 @@ export default function OrderPage() {
 
               {status === "FUNDED" && refundable && (
                 <div className="flex flex-col gap-1">
-                  <p className="font-serif text-4xl tracking-[-.045em]">Delivery deadline passed.</p>
+                  <p className="font-serif text-3xl tracking-[-.04em]">Delivery deadline passed.</p>
                   <p className="mt-4 text-[13px] leading-6 text-muted">
                     You can claim your refund now — or do nothing, it&apos;s processed
                     automatically.
@@ -196,7 +196,7 @@ export default function OrderPage() {
 
               {status === "SETTLED" && (
                 <div className="flex flex-col gap-1">
-                  <p className="font-serif text-4xl tracking-[-.045em]">Order complete.</p>
+                  <p className="font-serif text-3xl tracking-[-.04em]">Order complete.</p>
                   <p className="text-[13px] leading-5 text-muted">
                     You confirmed delivery and the seller was paid. Thanks for using escrow that
                     just works.
@@ -206,7 +206,7 @@ export default function OrderPage() {
 
               {status === "REFUNDED" && (
                 <div className="flex flex-col gap-1">
-                  <p className="font-serif text-4xl tracking-[-.045em]">Refunded in full.</p>
+                  <p className="font-serif text-3xl tracking-[-.04em]">Refunded in full.</p>
                   <p className="text-[13px] leading-5 text-muted">
                     Delivery wasn&apos;t confirmed by the deadline, so your payment came straight
                     back. That&apos;s the whole point.

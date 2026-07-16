@@ -1,7 +1,7 @@
 .page { width: min(calc(100% - 44px),1380px); margin: 0 auto; padding-bottom: 90px; }
 .hero { display: grid; grid-template-columns: 1.08fr .92fr; gap: clamp(50px,7vw,110px); align-items: center; min-height: calc(100svh - 86px); padding: 68px 34px 92px; }
 .heroCopy { max-width: 750px; }
-.heroCopy h1 { margin: 0; font-family: "Iowan Old Style","Palatino Linotype",Georgia,serif; font-size: clamp(4.8rem,7.8vw,8.2rem); font-weight: 400; line-height: .82; letter-spacing: -.07em; }
+.heroCopy h1 { margin: 0; font-family: "Iowan Old Style","Palatino Linotype",Georgia,serif; font-size: clamp(3.2rem,5vw,4.9rem); font-weight: 400; line-height: .92; letter-spacing: -.055em; }
 .heroCopy > p { max-width: 610px; margin-top: 34px; color: var(--muted); font-size: 17px; line-height: 1.65; letter-spacing: -.02em; }
 .actions { display: flex; align-items: center; gap: 12px; margin-top: 36px; }
 .primary,.secondary { display: inline-flex; min-height: 52px; align-items: center; justify-content: center; border-radius: 13px; font-size: 12px; font-weight: 650; transition: transform 180ms ease,box-shadow 180ms ease; }
@@ -18,10 +18,10 @@
 .demoBrand img { width: 100%; height: 100%; object-fit: cover; }
 .demoBrand p { font-size: 12px; font-weight: 650; }
 .demoBody { padding: 34px; border-radius: 26px; background: var(--surface); }
-.demoBody h2 { max-width: 430px; margin: 0; font-family: "Iowan Old Style",Georgia,serif; font-size: clamp(3rem,4.6vw,5.2rem); font-weight: 400; line-height: .9; letter-spacing: -.06em; }
+.demoBody h2 { max-width: 430px; margin: 0; font-family: "Iowan Old Style",Georgia,serif; font-size: clamp(2.15rem,3vw,3.2rem); font-weight: 400; line-height: .98; letter-spacing: -.045em; }
 .demoBody > p { max-width: 420px; margin-top: 20px; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .demoAmount { display: flex; align-items: flex-end; justify-content: space-between; margin-top: 42px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
-.demoAmount strong { font-family: "Iowan Old Style",Georgia,serif; font-size: 4.6rem; font-weight: 400; line-height: .8; letter-spacing: -.06em; }
+.demoAmount strong { font-family: "Iowan Old Style",Georgia,serif; font-size: 3.5rem; font-weight: 400; line-height: .86; letter-spacing: -.055em; }
 .demoAmount span { font-size: 11px; font-weight: 700; }
 .demoTerms { margin: 18px 0 0; }
 .demoTerms div { display: flex; justify-content: space-between; gap: 22px; padding: 10px 0; color: var(--muted); font-size: 11px; }
@@ -30,11 +30,11 @@
 .demoFoot { padding: 12px 8px 2px; color: var(--muted); font-size: 10px; text-align: center; }
 
 .statement { display: flex; justify-content: flex-end; padding: 96px 34px; border-top: 1px solid var(--border); }
-.statement p { max-width: 980px; font-size: clamp(2rem,4vw,4.4rem); line-height: 1.05; letter-spacing: -.045em; }
+.statement p { max-width: 920px; font-size: clamp(1.7rem,3vw,3.2rem); line-height: 1.1; letter-spacing: -.04em; }
 .statement strong { font-family: "Iowan Old Style",Georgia,serif; font-weight: 400; }
 .flow { padding: 88px 52px; border-radius: 42px; background: var(--surface); }
 .flowIntro { display: grid; grid-template-columns: 1.15fr .85fr; gap: 70px; align-items: end; }
-.flow h2,.pathCard h2 { margin: 0; font-family: "Iowan Old Style",Georgia,serif; font-size: clamp(3.3rem,5.4vw,5.8rem); font-weight: 400; line-height: .91; letter-spacing: -.058em; }
+.flow h2,.pathCard h2 { margin: 0; font-family: "Iowan Old Style",Georgia,serif; font-size: clamp(2.35rem,3.5vw,3.55rem); font-weight: 400; line-height: .98; letter-spacing: -.045em; }
 .flowIntro > p { max-width: 420px; color: var(--muted); font-size: 14px; line-height: 1.65; }
 .steps { display: grid; grid-template-columns: repeat(3,1fr); margin-top: 66px; border-top: 1px solid var(--foreground); border-left: 1px solid var(--border); }
 .steps li { display: grid; grid-template-columns: 38px 1fr; gap: 18px; min-height: 215px; padding: 28px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
@@ -48,5 +48,5 @@
 .pathCardDark { background: var(--foreground); color: white; }
 .pathCardDark p { color: #aaa79f; }
 
-@media (max-width: 960px) { .hero { grid-template-columns: 1fr; min-height: auto; padding-top: 88px; } .heroCopy h1 { font-size: clamp(5rem,14vw,8rem); } .steps { grid-template-columns: repeat(2,1fr); } }
-@media (max-width: 700px) { .page { width: calc(100% - 20px); } .hero { padding: 64px 10px 72px; } .heroCopy h1 { font-size: clamp(4.2rem,20vw,6.2rem); } .actions { align-items: stretch; flex-direction: column; } .primary { justify-content: space-between; } .demoCard { padding: 10px; border-radius: 28px; } .demoBody { padding: 26px 22px; border-radius: 21px; } .demoBody h2 { font-size: 3.5rem; } .demoAmount strong { font-size: 4rem; } .statement { padding: 72px 12px; } .flow { padding: 62px 20px; border-radius: 30px; } .flowIntro { grid-template-columns: 1fr; gap: 24px; } .steps { grid-template-columns: 1fr; } .paths { grid-template-columns: 1fr; } .pathCard { min-height: 380px; padding: 32px 25px; border-radius: 30px; } }
+@media (max-width: 960px) { .hero { grid-template-columns: 1fr; min-height: auto; padding-top: 88px; } .heroCopy h1 { font-size: clamp(3.25rem,9vw,4.6rem); } .steps { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 700px) { .page { width: calc(100% - 20px); } .hero { padding: 64px 10px 72px; } .heroCopy h1 { font-size: clamp(2.8rem,12vw,3.7rem); } .actions { align-items: stretch; flex-direction: column; } .primary { justify-content: space-between; } .demoCard { padding: 10px; border-radius: 28px; } .demoBody { padding: 26px 22px; border-radius: 21px; } .demoBody h2 { font-size: 2.35rem; } .demoAmount strong { font-size: 2.85rem; } .statement { padding: 72px 12px; } .flow { padding: 62px 20px; border-radius: 30px; } .flowIntro { grid-template-columns: 1fr; gap: 24px; } .steps { grid-template-columns: 1fr; } .paths { grid-template-columns: 1fr; } .pathCard { min-height: 380px; padding: 32px 25px; border-radius: 30px; } }
