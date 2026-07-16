@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { Transaction } from "@solana/web3.js";
-import { inputClass } from "./shared";
+import { Field, inputBase } from "./ui";
 
 interface OracleStatus {
   configured: boolean;
@@ -86,23 +86,24 @@ export default function OracleConfigPanel() {
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <div className="flex gap-3">
-          <input
-            required
-            placeholder="Mint address"
-            className={`${inputClass} flex-1 font-mono text-xs`}
-            value={mint}
-            onChange={(e) => setMint(e.target.value)}
-          />
-          <button
-            type="button"
-            onClick={checkStatus}
-            disabled={checking}
-            className="inline-flex h-10 items-center justify-center rounded-md border border-border px-4 text-sm font-medium transition-colors hover:bg-foreground/5 disabled:opacity-50"
-          >
-            {checking ? "Checking…" : "Check"}
-          </button>
-        </div>
+        <Field label="Mint address">
+          <div className="flex gap-3">
+            <input
+              required
+              className={`${inputBase} flex-1 font-mono text-xs`}
+              value={mint}
+              onChange={(e) => setMint(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={checkStatus}
+              disabled={checking}
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-md border border-border px-4 text-sm font-medium transition-colors hover:bg-foreground/5 disabled:opacity-50"
+            >
+              {checking ? "Checking…" : "Check"}
+            </button>
+          </div>
+        </Field>
 
         {status && (
           <p className="text-sm text-muted">
@@ -112,13 +113,15 @@ export default function OracleConfigPanel() {
           </p>
         )}
 
-        <input
-          required
-          placeholder="Trusted oracle pubkey"
-          className={`${inputClass} font-mono text-xs`}
-          value={oraclePubkey}
-          onChange={(e) => setOraclePubkey(e.target.value)}
-        />
+        <Field label="Trusted oracle pubkey" hint="The key allowed to certify deliveries for this mint.">
+          <input
+            required
+            placeholder="Enclave or attestor public key"
+            className={`${inputBase} font-mono text-xs`}
+            value={oraclePubkey}
+            onChange={(e) => setOraclePubkey(e.target.value)}
+          />
+        </Field>
 
         <button
           type="submit"

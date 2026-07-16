@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { Transaction } from "@solana/web3.js";
-import { inputClass } from "./shared";
+import { EmptyState, Field, FormSection, inputBase } from "./ui";
 
 interface Plan {
   planId: string;
@@ -41,6 +41,7 @@ export default function SubscriptionsPanel() {
 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [loadingSubscribers, setLoadingSubscribers] = useState(false);
@@ -110,8 +111,11 @@ export default function SubscriptionsPanel() {
         const sig = await connection.sendRawTransaction(signed.serialize());
         await connection.confirmTransaction(sig, "confirmed");
 
-        setFormSuccess(`Plan "${form.title}" created and confirmed on-chain.`);
+        setFormSuccess(
+          `Plan live. Share your subscribe link: ${window.location.origin}/subscribe/${body.planId}`
+        );
         setForm((f) => ({ ...f, title: "", description: "", imageUrl: "", priceUsd: "" }));
+        setCreating(false);
         refreshPlans();
       } catch (err) {
         setFormError(err instanceof Error ? err.message : "Failed to create plan");
@@ -122,22 +126,25 @@ export default function SubscriptionsPanel() {
     [publicKey, signTransaction, connection, form, refreshPlans]
   );
 
-  const toggleExpand = useCallback(async (planId: string) => {
-    setCollectMessage(null);
-    if (expandedPlanId === planId) {
-      setExpandedPlanId(null);
-      return;
-    }
-    setExpandedPlanId(planId);
-    setLoadingSubscribers(true);
-    try {
-      const res = await fetch(`/api/merchant/plans/${planId}/subscribers`);
-      const body = await res.json();
-      setSubscribers(body.subscribers ?? []);
-    } finally {
-      setLoadingSubscribers(false);
-    }
-  }, [expandedPlanId]);
+  const toggleExpand = useCallback(
+    async (planId: string) => {
+      setCollectMessage(null);
+      if (expandedPlanId === planId) {
+        setExpandedPlanId(null);
+        return;
+      }
+      setExpandedPlanId(planId);
+      setLoadingSubscribers(true);
+      try {
+        const res = await fetch(`/api/merchant/plans/${planId}/subscribers`);
+        const body = await res.json();
+        setSubscribers(body.subscribers ?? []);
+      } finally {
+        setLoadingSubscribers(false);
+      }
+    },
+    [expandedPlanId]
+  );
 
   const handleCollect = useCallback(
     async (planId: string, subscriberWallet: string) => {
@@ -160,7 +167,9 @@ export default function SubscriptionsPanel() {
 
         setCollectMessage(`Collected from ${subscriberWallet.slice(0, 4)}..${subscriberWallet.slice(-4)}.`);
       } catch (err) {
-        setCollectMessage(err instanceof Error ? err.message : "Collect failed - not yet due, or already collected this period.");
+        setCollectMessage(
+          err instanceof Error ? err.message : "Nothing due yet — this period was already collected."
+        );
       } finally {
         setCollectingWallet(null);
       }
@@ -169,112 +178,175 @@ export default function SubscriptionsPanel() {
   );
 
   return (
-    <div className="flex flex-col gap-10">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3 border-b border-border pb-10">
-        <h2 className="text-sm font-medium tracking-tight">New subscription plan</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <input
-            required
-            placeholder="Store name"
-            className={inputClass}
-            value={form.storeName}
-            onChange={(e) => setForm((f) => ({ ...f, storeName: e.target.value }))}
-          />
-          <input
-            required
-            placeholder="Title"
-            className={inputClass}
-            value={form.title}
-            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-          />
-          <input
-            placeholder="Description (optional)"
-            className={`${inputClass} col-span-2`}
-            value={form.description}
-            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-          />
-          <input
-            required
-            placeholder="Image URL"
-            className={`${inputClass} col-span-2`}
-            value={form.imageUrl}
-            onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
-          />
-          <input
-            required
-            type="number"
-            step="0.01"
-            min="0.01"
-            placeholder="Price per period (USD)"
-            className={inputClass}
-            value={form.priceUsd}
-            onChange={(e) => setForm((f) => ({ ...f, priceUsd: e.target.value }))}
-          />
-          <select
-            className={inputClass}
-            value={form.periodHours}
-            onChange={(e) => setForm((f) => ({ ...f, periodHours: e.target.value }))}
-          >
-            {PERIOD_OPTIONS.map((opt) => (
-              <option key={opt.hours} value={opt.hours}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <input
-            required
-            placeholder="Stablecoin mint address"
-            className={`${inputClass} col-span-2 font-mono text-xs`}
-            value={form.mint}
-            onChange={(e) => setForm((f) => ({ ...f, mint: e.target.value }))}
-          />
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-[15px] font-medium tracking-tight">
+            Your plans {loadingPlans && <span className="font-normal text-muted">refreshing…</span>}
+          </h2>
+          <p className="text-[12px] text-muted">
+            Collections run automatically — &quot;Collect&quot; is the manual override.
+          </p>
         </div>
+        {!creating && (
+          <button
+            onClick={() => {
+              setFormSuccess(null);
+              setCreating(true);
+            }}
+            className="inline-flex h-9 shrink-0 items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background transition-opacity hover:opacity-85"
+          >
+            New plan
+          </button>
+        )}
+      </div>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="mt-2 inline-flex h-10 w-fit items-center justify-center rounded-full bg-foreground px-6 text-sm font-medium text-background transition-opacity hover:opacity-85 disabled:opacity-50"
-        >
-          {submitting ? "Creating…" : "Create plan"}
-        </button>
-
-        {formError && <p className="text-sm text-red-500">{formError}</p>}
-        {formSuccess && <p className="text-sm text-green-600 dark:text-green-400">{formSuccess}</p>}
-      </form>
-
-      <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium tracking-tight">
-          Your plans {loadingPlans && <span className="text-muted">(refreshing…)</span>}
-        </h2>
-        <p className="text-[13px] text-muted">
-          Collections also run automatically — &quot;Collect&quot; is the manual override, not a
-          chore.
+      {formSuccess && (
+        <p className="rounded-lg border border-border bg-foreground/[0.03] px-4 py-3 text-sm text-green-600 dark:text-green-400">
+          {formSuccess}
         </p>
-        {plans.length === 0 ? (
-          <p className="text-sm text-muted">No plans yet. Recurring revenue takes about a minute to set up.</p>
+      )}
+
+      {creating && (
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-8 rounded-xl border border-border p-5"
+        >
+          <FormSection title="Plan details">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Store name" hint="Shown to subscribers at checkout.">
+                <input
+                  required
+                  placeholder="Aurora Prints"
+                  className={inputBase}
+                  value={form.storeName}
+                  onChange={(e) => setForm((f) => ({ ...f, storeName: e.target.value }))}
+                />
+              </Field>
+              <Field label="Title">
+                <input
+                  required
+                  placeholder="Supporter tier"
+                  className={inputBase}
+                  value={form.title}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                />
+              </Field>
+            </div>
+            <Field label="Description" hint="Optional — one sentence subscribers see under the title.">
+              <input
+                placeholder="Early access and a monthly sticker drop."
+                className={inputBase}
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              />
+            </Field>
+            <Field label="Image URL">
+              <input
+                required
+                placeholder="https://…/plan.png"
+                className={inputBase}
+                value={form.imageUrl}
+                onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
+              />
+            </Field>
+          </FormSection>
+
+          <FormSection title="Billing">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Price per period (USD)">
+                <input
+                  required
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="4.99"
+                  className={inputBase}
+                  value={form.priceUsd}
+                  onChange={(e) => setForm((f) => ({ ...f, priceUsd: e.target.value }))}
+                />
+              </Field>
+              <Field label="Billing period">
+                <select
+                  className={inputBase}
+                  value={form.periodHours}
+                  onChange={(e) => setForm((f) => ({ ...f, periodHours: e.target.value }))}
+                >
+                  {PERIOD_OPTIONS.map((opt) => (
+                    <option key={opt.hours} value={opt.hours}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <Field label="Stablecoin mint" hint="Devnet demo token — leave as-is unless you know why.">
+              <input
+                required
+                className={`${inputBase} font-mono text-xs`}
+                value={form.mint}
+                onChange={(e) => setForm((f) => ({ ...f, mint: e.target.value }))}
+              />
+            </Field>
+          </FormSection>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex h-10 items-center justify-center rounded-full bg-foreground px-6 text-sm font-medium text-background transition-opacity hover:opacity-85 disabled:opacity-50"
+            >
+              {submitting ? "Confirm in your wallet…" : "Create plan"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreating(false)}
+              className="inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium text-muted transition-colors hover:text-foreground"
+            >
+              Cancel
+            </button>
+          </div>
+
+          {formError && <p className="text-sm text-red-500">{formError}</p>}
+        </form>
+      )}
+
+      {!creating &&
+        (plans.length === 0 ? (
+          <EmptyState message="No plans yet. Recurring revenue takes about a minute to set up." />
         ) : (
           <ul className="flex flex-col gap-2">
             {plans.map((p) => (
-              <li key={p.planId} className="rounded-lg border border-border text-sm">
+              <li key={p.planId} className="rounded-lg border border-border">
                 <button
                   onClick={() => toggleExpand(p.planId)}
-                  className="flex w-full items-center justify-between px-4 py-3 text-left"
+                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left"
                 >
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-medium">{p.title}</span>
-                    <span className="text-muted">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={p.imageUrl}
+                    alt=""
+                    className="h-10 w-10 shrink-0 rounded-md border border-border object-cover"
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="truncate text-sm font-medium">{p.title}</span>
+                    <span className="truncate text-[12px] text-muted">
                       ${(p.amountBaseUnits / 1_000_000).toFixed(2)} / {periodLabel(p.periodHours)}
                     </span>
                   </div>
-                  <span className="text-muted">{expandedPlanId === p.planId ? "Hide" : "Subscribers"}</span>
+                  <span className="shrink-0 text-[12px] text-muted">
+                    {expandedPlanId === p.planId ? "Hide" : "Subscribers"}
+                  </span>
                 </button>
 
                 {expandedPlanId === p.planId && (
-                  <div className="flex flex-col gap-2 border-t border-border px-4 py-3">
+                  <div className="flex flex-col gap-2 border-t border-border px-3 py-3 pl-16">
                     {loadingSubscribers ? (
-                      <p className="text-muted">Loading subscribers…</p>
+                      <p className="text-[13px] text-muted">Loading subscribers…</p>
                     ) : subscribers.length === 0 ? (
-                      <p className="text-muted">No subscribers yet.</p>
+                      <p className="text-[13px] text-muted">
+                        No subscribers yet. Share /subscribe/{p.planId} to get your first.
+                      </p>
                     ) : (
                       subscribers.map((s) => (
                         <div key={s.subscriberWallet} className="flex items-center justify-between gap-3">
@@ -291,14 +363,13 @@ export default function SubscriptionsPanel() {
                         </div>
                       ))
                     )}
-                    {collectMessage && <p className="text-muted">{collectMessage}</p>}
+                    {collectMessage && <p className="text-[13px] text-muted">{collectMessage}</p>}
                   </div>
                 )}
               </li>
             ))}
           </ul>
-        )}
-      </div>
+        ))}
     </div>
   );
 }

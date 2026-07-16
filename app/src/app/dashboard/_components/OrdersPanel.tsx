@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { MERCHANT_STATUS } from "./shared";
+import { EmptyState, StatusChip } from "./ui";
 
 interface OrderRow {
   orderPda: string;
@@ -11,6 +11,7 @@ interface OrderRow {
   buyerWallet: string | null;
   sku: string;
   title: string;
+  imageUrl: string;
   priceUsdc: number;
   createdAt: string;
 }
@@ -38,37 +39,45 @@ export default function OrdersPanel() {
   }, [refresh]);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium tracking-tight">
-          Orders across your listings {loading && <span className="text-muted">(refreshing…)</span>}
-        </h2>
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-[15px] font-medium tracking-tight">
+            Orders {loading && <span className="font-normal text-muted">refreshing…</span>}
+          </h2>
+          <p className="text-[12px] text-muted">
+            <span className="font-medium text-foreground">&quot;Paid — deliver&quot; means deliver
+            now</span>{" "}
+            — the money is in escrow waiting on you.
+          </p>
+        </div>
         <button
           onClick={refresh}
-          className="inline-flex h-8 items-center justify-center rounded-full border border-border px-4 text-xs font-medium transition-colors hover:bg-foreground/5"
+          className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-border px-4 text-xs font-medium transition-colors hover:bg-foreground/5"
         >
           Refresh
         </button>
       </div>
-      <p className="text-sm text-muted">
-        <span className="font-medium text-foreground">&quot;Paid — deliver&quot; means deliver
-        now</span>{" "}
-        — the money is locked in escrow waiting on you. &quot;Paid out&quot; means it&apos;s
-        yours.
-      </p>
+
       {orders.length === 0 ? (
-        <p className="text-sm text-muted">No orders yet. Share a checkout link to get your first one.</p>
+        <EmptyState message="No orders yet. Share a checkout link to get your first one." />
       ) : (
         <ul className="flex flex-col gap-2">
           {orders.map((o) => (
             <li key={o.orderPda}>
               <Link
                 href={`/orders/${o.orderPda}`}
-                className="flex items-center justify-between rounded-lg border border-border px-4 py-3 text-sm transition-colors hover:bg-foreground/5"
+                className="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5 transition-colors hover:bg-foreground/5"
               >
-                <div className="flex flex-col gap-0.5">
-                  <span className="font-medium">{o.title}</span>
-                  <span className="text-muted">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={o.imageUrl}
+                  alt=""
+                  className="h-10 w-10 shrink-0 rounded-md border border-border object-cover"
+                />
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="truncate text-sm font-medium">{o.title}</span>
+                  <span className="truncate text-[12px] text-muted">
                     {o.sku} · ${(o.priceUsdc / 1_000_000).toFixed(2)}
                     {o.buyerWallet && (
                       <span className="font-mono">
@@ -77,9 +86,7 @@ export default function OrdersPanel() {
                     )}
                   </span>
                 </div>
-                <span className="rounded-full border border-border px-2.5 py-1 text-[11px] tracking-wide text-muted">
-                  {MERCHANT_STATUS[o.escrowStatus] ?? o.escrowStatus}
-                </span>
+                <StatusChip status={o.escrowStatus} />
               </Link>
             </li>
           ))}
