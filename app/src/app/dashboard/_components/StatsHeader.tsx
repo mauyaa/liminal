@@ -35,11 +35,11 @@ export default function StatsHeader() {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+    <div className="grid grid-cols-2 gap-2 lg:grid-cols-5">
       {cards.map((c) => (
-        <div key={c.label} className="flex flex-col gap-0.5 rounded-lg border border-border px-3 py-2.5">
-          <span className="text-[11px] tracking-wide text-muted">{c.label}</span>
-          <span className="text-lg font-semibold tracking-tight">{c.value}</span>
+        <div key={c.label} className="flex min-h-28 flex-col rounded-2xl border border-border bg-surface p-4">
+          <span className="text-[9px] font-semibold tracking-[.1em] text-muted uppercase">{c.label}</span>
+          <span className="mt-auto font-serif text-3xl tracking-[-.04em]">{c.value}</span>
           {c.sub && <span className="text-[10px] leading-3 text-muted">{c.sub}</span>}
         </div>
       ))}

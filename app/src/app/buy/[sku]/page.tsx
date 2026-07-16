@@ -74,6 +74,7 @@ export default function BuyPage() {
 
   const normalAction = listing?.links?.actions?.[0];
   const sponsoredAction = listing?.links?.actions?.[1];
+  const checkoutStep = payState === "confirmed" ? 3 : publicKey ? 2 : 1;
 
   const handlePay = useCallback(async () => {
     if (!publicKey || !signTransaction) return;
@@ -132,43 +133,42 @@ export default function BuyPage() {
   }, [publicKey, signTransaction, connection, sku, gasless, sponsoredAction]);
 
   return (
-    <div className="flex flex-1 items-center justify-center px-6 py-24">
-      <main className="flex w-full max-w-sm flex-col gap-6">
-        {loadError && <p className="text-sm text-red-500">{loadError}</p>}
+    <div className="route-shell">
+      <main className="route-main">
+        {loadError && <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{loadError}</p>}
+        {!listing && !loadError && <p className="route-lede">Loading protected checkout…</p>}
 
-        {listing && (
-          <>
+        {listing && <div className="grid gap-8 lg:grid-cols-[1.05fr_.95fr]">
+          <section className="overflow-hidden rounded-[36px] border border-border bg-surface">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={listing.icon}
-              alt={listing.title}
-              className="aspect-square w-full rounded-xl border border-border object-cover"
-            />
-            <div className="flex flex-col gap-1.5">
-              <h1 className="text-xl font-semibold tracking-tight">{listing.title}</h1>
-              <p className="text-sm leading-6 text-muted">{listing.description}</p>
+            <img src={listing.icon} alt={listing.title} className="aspect-[4/3] w-full object-cover" />
+            <div className="p-7 sm:p-10">
+              <h1 className="mt-6 font-serif text-5xl leading-[.95] tracking-[-.05em] sm:text-7xl">{listing.title}</h1>
+              <p className="mt-5 max-w-xl text-sm leading-6 text-muted">{listing.description}</p>
+            </div>
+          </section>
+
+          <section className="flex flex-col rounded-[36px] bg-[#ded8ce] p-7 sm:p-10">
+            <ol className="grid grid-cols-3 gap-2" aria-label="Checkout progress">
+              {["Review", "Approve", "Track"].map((label, index) => {
+                const step = index + 1;
+                return <li key={label} className={`border-t pt-3 text-[11px] ${step <= checkoutStep ? "border-foreground font-semibold text-foreground" : "border-foreground/20 text-muted"}`}><span className="mr-1.5">{step}</span>{label}</li>;
+              })}
+            </ol>
+            <div className="mt-12 border-b border-foreground/20 pb-8">
+              <h2 className="font-serif text-4xl leading-[.95] tracking-[-.045em] sm:text-5xl">Seller paid only after delivery.</h2>
+              <p className="mt-5 text-[13px] leading-6 text-muted">Not delivered within {windowLabel(listing.deliveryWindowSeconds)}? Your payment returns automatically.</p>
             </div>
 
-            <div className="rounded-lg border border-border bg-foreground/[0.03] px-4 py-3">
-              <p className="text-[13px] leading-5 text-muted">
-                <span className="font-medium text-foreground">🔒 Protected purchase</span> — the
-                seller is paid only when you confirm delivery. Not delivered within{" "}
-                {windowLabel(listing.deliveryWindowSeconds)}? You&apos;re refunded automatically.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3 border-t border-border pt-6">
+            <div className="mt-8 flex flex-col gap-4">
               <WalletMultiButton />
               {!publicKey && (
-                <p className="text-[13px] text-muted">
-                  You approve the payment in your own wallet. Liminal never holds your keys — no
-                  sign-up, your wallet is your account.
-                </p>
+                <p className="text-[12px] leading-5 text-muted">Connect the wallet you want to pay with. No account, no password, and Liminal never holds your keys.</p>
               )}
 
               {sponsoredAction && payState !== "confirmed" && publicKey && (
-                <label className="flex flex-col gap-0.5 text-sm">
-                  <span className="flex items-center gap-2">
+                <label className="rounded-xl border border-foreground/15 bg-white/30 p-4 text-sm">
+                  <span className="flex items-center gap-3 font-medium">
                     <input
                       type="checkbox"
                       checked={gasless}
@@ -176,7 +176,7 @@ export default function BuyPage() {
                     />
                     Pay network fees for me (no SOL needed)
                   </span>
-                  <span className="pl-5 text-[12px] text-muted">
+                  <span className="mt-1 block pl-6 text-[11px] leading-4 text-muted">
                     A relayer covers the network fee for a flat $0.01, added to your total.
                   </span>
                 </label>
@@ -186,7 +186,7 @@ export default function BuyPage() {
                 <button
                   onClick={handlePay}
                   disabled={payState === "signing" || payState === "sending"}
-                  className="inline-flex h-11 items-center justify-center rounded-full bg-foreground px-6 text-sm font-medium text-background transition-opacity hover:opacity-85 disabled:opacity-50"
+                  className="inline-flex h-13 items-center justify-center rounded-xl bg-foreground px-6 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 disabled:opacity-50"
                 >
                   {payState === "signing"
                     ? "Confirm in your wallet…"
@@ -199,11 +199,9 @@ export default function BuyPage() {
               )}
 
               {payState === "confirmed" && signature && (
-                <div className="flex flex-col gap-2 text-sm">
-                  <p className="font-medium text-green-600 dark:text-green-400">
-                    Payment protected.
-                  </p>
-                  <p className="text-muted">
+                <div className="rounded-2xl bg-foreground p-6 text-sm text-white">
+                  <p className="font-serif text-3xl tracking-[-.04em] text-accent">Payment protected.</p>
+                  <p className="mt-3 leading-6 text-white/60">
                     Your payment is in escrow — the seller has been notified to deliver. Confirm
                     receipt when it arrives, or do nothing and get refunded automatically after
                     the delivery window.
@@ -211,7 +209,7 @@ export default function BuyPage() {
                   {orderPda && (
                     <Link
                       href={`/orders/${orderPda}`}
-                      className="inline-flex h-10 w-fit items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background transition-opacity hover:opacity-85"
+                      className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-xl bg-accent px-5 text-sm font-semibold text-foreground"
                     >
                       Track this order
                     </Link>
@@ -220,7 +218,7 @@ export default function BuyPage() {
                     href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-mono text-xs text-muted underline"
+                    className="mt-4 inline-block font-mono text-[10px] text-white/50 underline"
                   >
                     View transaction
                   </a>
@@ -229,15 +227,15 @@ export default function BuyPage() {
 
               {payError && (
                 <div className="flex flex-col gap-1">
-                  <p className="text-sm text-red-500">{payError.headline}</p>
+                  <p className="text-sm font-medium text-red-700">{payError.headline}</p>
                   {payError.detail && (
                     <p className="break-all text-[11px] text-muted">{payError.detail}</p>
                   )}
                 </div>
               )}
             </div>
-          </>
-        )}
+          </section>
+        </div>}
       </main>
     </div>
   );

@@ -130,32 +130,36 @@ export default function SubscribePage() {
   }, [publicKey, signTransaction, connection, planId]);
 
   return (
-    <div className="flex flex-1 items-center justify-center px-6 py-24">
-      <main className="flex w-full max-w-sm flex-col gap-6">
+    <div className="route-shell">
+      <main className="route-main">
+        <div className="route-heading"><h1 className="route-title">Subscribe on your terms.</h1><p className="route-lede">The amount, frequency and cancellation rules are enforced by the payment—not a merchant promise.</p></div>
         {loadError && <p className="text-sm text-red-500">{loadError}</p>}
 
         {plan && (
-          <>
+          <div className="grid gap-8 lg:grid-cols-[1.05fr_.95fr]">
+            <section className="overflow-hidden rounded-[36px] border border-border bg-surface">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={plan.icon}
               alt={plan.title}
-              className="aspect-square w-full rounded-xl border border-border object-cover"
+              className="aspect-[4/3] w-full object-cover"
             />
-            <div className="flex flex-col gap-1.5">
-              <h1 className="text-xl font-semibold tracking-tight">{plan.title}</h1>
-              <p className="text-sm leading-6 text-muted">{plan.description}</p>
+            <div className="p-7 sm:p-10">
+              <h2 className="mt-6 font-serif text-5xl leading-[.95] tracking-[-.05em] sm:text-7xl">{plan.title}</h2>
+              <p className="mt-5 text-sm leading-6 text-muted">{plan.description}</p>
             </div>
+            </section>
 
-            <div className="rounded-lg border border-border bg-foreground/[0.03] px-4 py-3">
-              <p className="text-[13px] leading-5 text-muted">
+            <section className="flex flex-col rounded-[36px] bg-[#ded8ce] p-7 sm:p-10">
+            <div className="border-b border-foreground/20 pb-7">
+              <p className="mt-4 text-[13px] leading-6 text-muted">
                 You&apos;re authorizing this plan to collect its price once per billing period.
                 Cancel anytime — cancellation is enforced on-chain, not by the merchant&apos;s
                 goodwill.
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 border-t border-border pt-6">
+            <div className="mt-8 flex flex-col gap-4">
               <WalletMultiButton />
               {publicKey && subState === "idle" && (
                 <p className="text-[12px] text-muted">
@@ -168,7 +172,7 @@ export default function SubscribePage() {
                 <button
                   onClick={handleSubscribe}
                   disabled={subState === "authorizing" || subState === "subscribing"}
-                  className="inline-flex h-11 items-center justify-center rounded-full bg-foreground px-6 text-sm font-medium text-background transition-opacity hover:opacity-85 disabled:opacity-50"
+                  className="inline-flex h-13 items-center justify-center rounded-xl bg-foreground px-6 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 disabled:opacity-50"
                 >
                   {subState === "authorizing"
                     ? "Setting up (1/2)…"
@@ -179,9 +183,9 @@ export default function SubscribePage() {
               )}
 
               {subState === "confirmed" && signature && (
-                <div className="flex flex-col gap-1 text-sm">
-                  <p className="font-medium text-green-600 dark:text-green-400">Subscribed.</p>
-                  <p className="text-muted">
+                <div className="rounded-2xl bg-foreground p-6 text-sm text-white">
+                  <p className="font-serif text-3xl tracking-[-.04em] text-accent">Subscribed.</p>
+                  <p className="mt-3 text-white/60">
                     Each period&apos;s payment collects automatically. Manage it right here,
                     anytime.
                   </p>
@@ -189,7 +193,7 @@ export default function SubscribePage() {
                     href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-mono text-xs text-muted underline"
+                    className="mt-4 inline-block font-mono text-[10px] text-white/50 underline"
                   >
                     View transaction
                   </a>
@@ -199,11 +203,11 @@ export default function SubscribePage() {
               {subError && <p className="text-sm text-red-500">{subError}</p>}
 
               {publicKey && (
-                <div className="flex flex-col gap-1 border-t border-border pt-4">
+                <div className="mt-4 flex flex-col gap-2 border-t border-foreground/15 pt-5">
                   <button
                     onClick={handleCancel}
                     disabled={cancelState === "cancelling"}
-                    className="inline-flex h-9 w-fit items-center justify-center rounded-full border border-border px-4 text-xs font-medium transition-colors hover:bg-foreground/5 disabled:opacity-50"
+                    className="inline-flex h-10 w-fit items-center justify-center rounded-xl border border-foreground/20 px-4 text-xs font-semibold transition-colors hover:bg-white/30 disabled:opacity-50"
                   >
                     {cancelState === "cancelling" ? "Cancelling…" : "Cancel subscription"}
                   </button>
@@ -221,7 +225,8 @@ export default function SubscribePage() {
                 </div>
               )}
             </div>
-          </>
+            </section>
+          </div>
         )}
       </main>
     </div>

@@ -50,11 +50,11 @@ const GROUPS: { title: string; endpoints: { method: string; path: string; what: 
 
 export default function DocsPage() {
   return (
-    <div className="flex flex-1 justify-center px-6 py-16">
-      <main className="flex w-full max-w-2xl flex-col gap-10">
-        <div className="flex flex-col gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">Documentation</h1>
-          <p className="text-sm leading-6 text-muted">
+    <div className="route-shell">
+      <main className="route-main">
+        <div className="route-heading">
+          <h1 className="route-title">Ship protected payments.</h1>
+          <p className="route-lede">
             One integration pattern everywhere: call an endpoint, receive an unsigned
             transaction, have the wallet sign it, submit, then sync. Your platform never holds
             funds and never needs a private key on its servers. Deep documentation for every
@@ -71,11 +71,11 @@ export default function DocsPage() {
           </p>
         </div>
 
-        <section className="flex flex-col gap-3">
+        <section className="surface flex flex-col gap-4 p-6 sm:p-9">
           <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
             Quickstart — a protected payment in three calls
           </h2>
-          <pre className="overflow-x-auto rounded-lg border border-border bg-foreground/[0.03] px-4 py-3 font-mono text-[12px] leading-5">
+          <pre className="overflow-x-auto rounded-2xl bg-foreground p-5 font-mono text-[11px] leading-5 text-white">
 {`# 1 · Create a listing (returns an unsigned tx for the merchant wallet)
 curl -X POST ${BASE}/api/merchant/listings \\
   -H "Content-Type: application/json" \\
@@ -99,7 +99,7 @@ curl -X POST ${BASE}/api/orders/<orderPda>/settle`}
         </section>
 
         {GROUPS.map((g) => (
-          <section key={g.title} className="flex flex-col gap-3">
+          <section key={g.title} className="surface flex flex-col gap-3 p-6 sm:p-8">
             <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">{g.title}</h2>
             <div className="flex flex-col">
               {g.endpoints.map((e) => (
@@ -116,7 +116,7 @@ curl -X POST ${BASE}/api/orders/<orderPda>/settle`}
           </section>
         ))}
 
-        <section className="flex flex-col gap-2">
+        <section className="surface flex flex-col gap-3 p-6 sm:p-8">
           <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">Webhooks</h2>
           <p className="text-[13px] leading-6 text-muted">
             Register a URL once via <code className="font-mono text-[12px]">POST /api/merchant/webhook</code> and

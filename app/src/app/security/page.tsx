@@ -39,11 +39,10 @@ const ROADMAP = [
 
 export default function SecurityPage() {
   return (
-    <div className="flex flex-1 justify-center px-6 py-16">
-      <main className="flex w-full max-w-2xl flex-col gap-10">
-        <div className="flex flex-col gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">Security</h1>
-          <p className="text-sm leading-6 text-muted">
+    <div className="route-shell">
+      <main className="route-main route-main--narrow">
+        <div className="route-heading"><h1 className="route-title">Trust the rules, not us.</h1>
+          <p className="route-lede">
             Trust infrastructure earns trust by being precise about what it does — and honest
             about what it doesn&apos;t do yet. Liminal currently runs on Solana devnet with test
             funds only.
@@ -56,9 +55,9 @@ export default function SecurityPage() {
           </h2>
           <div className="flex flex-col gap-3">
             {LIVE.map((item) => (
-              <div key={item.title} className="flex flex-col gap-1 rounded-lg border border-border px-4 py-3">
-                <span className="text-sm font-medium">{item.title}</span>
-                <p className="text-[13px] leading-5 text-muted">{item.body}</p>
+              <div key={item.title} className="surface flex flex-col gap-3 p-6 sm:p-7">
+                <span className="font-serif text-2xl tracking-[-.035em]">{item.title}</span>
+                <p className="text-[13px] leading-6 text-muted">{item.body}</p>
               </div>
             ))}
           </div>

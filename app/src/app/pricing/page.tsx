@@ -48,11 +48,10 @@ const ENTERPRISE = [
 
 export default function PricingPage() {
   return (
-    <div className="flex flex-1 justify-center px-6 py-16">
-      <main className="flex w-full max-w-3xl flex-col gap-10">
-        <div className="flex flex-col gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">Pricing</h1>
-          <p className="max-w-xl text-sm leading-6 text-muted">
+    <div className="route-shell">
+      <main className="route-main">
+        <div className="route-heading"><h1 className="route-title">Pay for fewer disputes.</h1>
+          <p className="route-lede">
             You&apos;re not buying cheap transactions — you&apos;re buying fewer disputes, higher
             conversion, automatic settlement, and an audit trail your finance team can trust.
             Prices below are the planned commercial structure; everything currently runs free on
@@ -64,13 +63,13 @@ export default function PricingPage() {
           {TIERS.map((t) => (
             <div
               key={t.name}
-              className={`flex flex-col gap-3 rounded-xl border p-5 ${
-                t.highlight ? "border-foreground" : "border-border"
+              className={`flex min-h-72 flex-col gap-4 rounded-[28px] border p-7 ${
+                t.highlight ? "border-foreground bg-foreground text-white" : "border-border bg-surface"
               }`}
             >
               <div className="flex flex-col gap-1">
                 <span className="text-sm font-medium">{t.name}</span>
-                <span className="text-2xl font-semibold tracking-tight">{t.price}</span>
+                <span className="font-serif text-4xl tracking-[-.045em]">{t.price}</span>
                 {t.fee && <span className="text-[12px] text-muted">{t.fee}</span>}
                 <span className="text-[12px] text-muted">{t.who}</span>
               </div>
@@ -85,7 +84,7 @@ export default function PricingPage() {
           ))}
         </div>
 
-        <div className="flex flex-col gap-3 rounded-xl border border-border p-5">
+        <div className="surface flex flex-col gap-4 p-7 sm:p-9">
           <div className="flex flex-col gap-1">
             <span className="text-sm font-medium">Enterprise</span>
             <span className="text-lg font-semibold tracking-tight">From $5,000/mo</span>
@@ -106,7 +105,7 @@ export default function PricingPage() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-xl border border-dashed border-border p-5">
+        <div className="flex flex-col gap-4 rounded-[28px] bg-[#ded8ce] p-7 sm:p-9">
           <span className="text-sm font-medium">Design-partner pilot</span>
           <p className="text-[13px] leading-6 text-muted">
             For the first three platforms processing real stablecoin transactions:{" "}

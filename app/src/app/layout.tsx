@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SolanaWalletProvider } from "@/lib/solana/wallet-provider";
+import { SiteHeader } from "@/components/site-chrome";
+import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
 
 const inter = Inter({
@@ -10,9 +12,21 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Liminal — Conditional stablecoin payments",
+  metadataBase: new URL("https://app-eight-lovat-94.vercel.app"),
+  title: "Liminal — Payments that wait for the work",
   description:
-    "Programmable escrow infrastructure for stablecoin commerce: lock funds, verify completion, and automatically release or refund — through one API.",
+    "Protected stablecoin checkout: the seller gets paid when delivery is confirmed, or the buyer is refunded automatically.",
+  openGraph: {
+    title: "Liminal — Money moves when the work does",
+    description: "Protected checkout for digital work: release on delivery or refund automatically.",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Liminal protected payments" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Liminal — Money moves when the work does",
+    description: "Protected checkout for digital work: release on delivery or refund automatically.",
+    images: ["/og.png"],
+  },
 };
 
 export default function RootLayout({
@@ -24,12 +38,9 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <SolanaWalletProvider>
-          {children}
-          <footer className="flex justify-center px-6 pb-6">
-            <p className="text-[11px] tracking-wide text-muted">
-              DEVNET — test money. Nothing here is real value.
-            </p>
-          </footer>
+          <SiteHeader />
+          <div className="site-content">{children}</div>
+          <SiteFooter />
         </SolanaWalletProvider>
         <Analytics />
       </body>

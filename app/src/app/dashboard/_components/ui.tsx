@@ -12,7 +12,7 @@
  */
 
 export const inputBase =
-  "h-10 w-full rounded-md border border-border bg-transparent px-3 text-sm outline-none transition-colors focus:border-foreground/40";
+  "h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm outline-none transition-colors focus:border-foreground/40";
 
 export function Field({
   label,
@@ -26,8 +26,8 @@ export function Field({
   className?: string;
 }) {
   return (
-    <label className={`flex flex-col gap-1 ${className}`}>
-      <span className="text-[13px] font-medium">{label}</span>
+    <label className={`flex flex-col gap-1.5 ${className}`}>
+      <span className="text-[11px] font-semibold tracking-[.02em]">{label}</span>
       {children}
       {hint && <span className="text-[11px] leading-4 text-muted">{hint}</span>}
     </label>
@@ -42,8 +42,8 @@ export function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <fieldset className="flex flex-col gap-4">
-      <legend className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+    <fieldset className="flex flex-col gap-4 rounded-2xl bg-foreground/[.035] p-5">
+      <legend className="px-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-muted">
         {title}
       </legend>
       {children}
@@ -70,7 +70,7 @@ export function StatusChip({ status }: { status: string | null | undefined }) {
 
 export function EmptyState({ message, action }: { message: string; action?: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border px-6 py-10 text-center">
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-foreground/[.02] px-6 py-14 text-center">
       <p className="max-w-xs text-sm leading-6 text-muted">{message}</p>
       {action}
     </div>
