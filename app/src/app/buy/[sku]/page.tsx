@@ -1,21 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Transaction } from "@solana/web3.js";
 
-interface ActionLink {
-  label: string;
-  href: string;
-}
-
+interface ActionLink { label: string; href: string; }
 interface Listing {
   title: string;
   description: string;
-  icon: string;
   label: string;
   deliveryWindowSeconds?: number;
   links?: { actions: ActionLink[] };
@@ -31,29 +27,21 @@ function windowLabel(seconds?: number): string {
   return `${hours} hours`;
 }
 
-/** Map raw wallet/API failures to guide-voice copy; raw detail stays as fine print. */
 function friendlyPayError(raw: string): { headline: string; detail?: string } {
   const lower = raw.toLowerCase();
   if (lower.includes("user rejected") || lower.includes("rejected the request")) {
-    return { headline: "No problem — nothing was charged. Ready when you are." };
+    return { headline: "Nothing was charged. You can try again when ready." };
   }
   if (lower.includes("insufficient") || lower.includes('"custom":1')) {
-    return {
-      headline: "Your wallet doesn't have enough of this token. Top up and try again.",
-      detail: raw,
-    };
+    return { headline: "This wallet does not have enough of the demo token.", detail: raw };
   }
-  return {
-    headline: "That didn't go through — nothing was charged. Try again in a moment.",
-    detail: raw,
-  };
+  return { headline: "The payment did not go through. Nothing was charged.", detail: raw };
 }
 
 export default function BuyPage() {
   const { sku } = useParams<{ sku: string }>();
   const { connection } = useConnection();
   const { publicKey, signTransaction } = useWallet();
-
   const [listing, setListing] = useState<Listing | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [gasless, setGasless] = useState(false);
@@ -66,7 +54,7 @@ export default function BuyPage() {
     fetch(`/api/actions/buy/${sku}`)
       .then(async (res) => {
         const body = await res.json();
-        if (!res.ok) throw new Error(body.message ?? "Failed to load listing");
+        if (!res.ok) throw new Error(body.message ?? "Failed to load checkout");
         setListing(body);
       })
       .catch((err) => setLoadError(err.message));
@@ -89,23 +77,17 @@ export default function BuyPage() {
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.message ?? "Failed to build transaction");
-
       const tx = Transaction.from(Buffer.from(body.transaction, "base64"));
       const signed = await signTransaction(tx);
 
       let sig: string;
       if (gasless && body.relaySubmitUrl) {
-        // The relayer, not the buyer, is fee payer here - the buyer's
-        // signature is only a partial one, so the relayer's own submit
-        // route countersigns and broadcasts it, not this client.
         setPayState("sending");
         const relayRes = await fetch(body.relaySubmitUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            transaction: signed
-              .serialize({ requireAllSignatures: false, verifySignatures: false })
-              .toString("base64"),
+            transaction: signed.serialize({ requireAllSignatures: false, verifySignatures: false }).toString("base64"),
           }),
         });
         const relayBody = await relayRes.json();
@@ -122,7 +104,6 @@ export default function BuyPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderPda: body.orderPda, fundTxSignature: sig }),
       }).catch(() => {});
-
       setSignature(sig);
       setOrderPda(body.orderPda ?? null);
       setPayState("confirmed");
@@ -134,108 +115,57 @@ export default function BuyPage() {
 
   return (
     <div className="route-shell">
-      <main className="route-main">
+      <main className="route-main max-w-[1040px]">
         {loadError && <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{loadError}</p>}
-        {!listing && !loadError && <p className="route-lede">Loading protected checkout…</p>}
+        {!listing && !loadError && <p className="route-lede">Loading checkout…</p>}
 
-        {listing && <div className="grid gap-8 lg:grid-cols-[1.05fr_.95fr]">
-          <section className="overflow-hidden rounded-[36px] border border-border bg-surface">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={listing.icon} alt={listing.title} className="aspect-[4/3] w-full object-cover" />
-            <div className="p-7 sm:p-10">
-              <h1 className="mt-6 font-serif text-5xl leading-[.95] tracking-[-.05em] sm:text-7xl">{listing.title}</h1>
-              <p className="mt-5 max-w-xl text-sm leading-6 text-muted">{listing.description}</p>
-            </div>
-          </section>
+        {listing && <>
+          <header className="flex items-center justify-center gap-3">
+            <span className="block h-11 w-11 overflow-hidden rounded-[13px]"><Image src="/liminal-mark.jpg" alt="" width={44} height={44} /></span>
+            <div><p className="text-sm font-semibold tracking-[-.02em]">Liminal</p><p className="text-[11px] text-muted">Protected checkout</p></div>
+          </header>
 
-          <section className="flex flex-col rounded-[36px] bg-[#ded8ce] p-7 sm:p-10">
-            <ol className="grid grid-cols-3 gap-2" aria-label="Checkout progress">
-              {["Review", "Approve", "Track"].map((label, index) => {
+          <section className="overflow-hidden rounded-[32px] border border-border bg-surface shadow-[0_28px_70px_rgba(21,21,21,.07)]">
+            <ol className="grid grid-cols-3 border-b border-border px-6 sm:px-10" aria-label="Checkout progress">
+              {["Review terms", "Approve payment", "Track order"].map((label, index) => {
                 const step = index + 1;
-                return <li key={label} className={`border-t pt-3 text-[11px] ${step <= checkoutStep ? "border-foreground font-semibold text-foreground" : "border-foreground/20 text-muted"}`}><span className="mr-1.5">{step}</span>{label}</li>;
+                return <li key={label} className={`border-b-2 py-5 text-center text-[11px] ${step <= checkoutStep ? "border-foreground font-semibold text-foreground" : "border-transparent text-muted"}`}>{step}. {label}</li>;
               })}
             </ol>
-            <div className="mt-12 border-b border-foreground/20 pb-8">
-              <h2 className="font-serif text-4xl leading-[.95] tracking-[-.045em] sm:text-5xl">Seller paid only after delivery.</h2>
-              <p className="mt-5 text-[13px] leading-6 text-muted">Not delivered within {windowLabel(listing.deliveryWindowSeconds)}? Your payment returns automatically.</p>
-            </div>
 
-            <div className="mt-8 flex flex-col gap-4">
-              <WalletMultiButton />
-              {!publicKey && (
-                <p className="text-[12px] leading-5 text-muted">Connect the wallet you want to pay with. No account, no password, and Liminal never holds your keys.</p>
-              )}
-
-              {sponsoredAction && payState !== "confirmed" && publicKey && (
-                <label className="rounded-xl border border-foreground/15 bg-white/30 p-4 text-sm">
-                  <span className="flex items-center gap-3 font-medium">
-                    <input
-                      type="checkbox"
-                      checked={gasless}
-                      onChange={(e) => setGasless(e.target.checked)}
-                    />
-                    Pay network fees for me (no SOL needed)
-                  </span>
-                  <span className="mt-1 block pl-6 text-[11px] leading-4 text-muted">
-                    A relayer covers the network fee for a flat $0.01, added to your total.
-                  </span>
-                </label>
-              )}
-
-              {publicKey && payState !== "confirmed" && (
-                <button
-                  onClick={handlePay}
-                  disabled={payState === "signing" || payState === "sending"}
-                  className="inline-flex h-13 items-center justify-center rounded-xl bg-foreground px-6 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 disabled:opacity-50"
-                >
-                  {payState === "signing"
-                    ? "Confirm in your wallet…"
-                    : payState === "sending"
-                      ? "Sending…"
-                      : gasless && sponsoredAction
-                        ? sponsoredAction.label
-                        : (normalAction?.label ?? listing.label)}
-                </button>
-              )}
-
-              {payState === "confirmed" && signature && (
-                <div className="rounded-2xl bg-foreground p-6 text-sm text-white">
-                  <p className="font-serif text-3xl tracking-[-.04em] text-accent">Payment protected.</p>
-                  <p className="mt-3 leading-6 text-white/60">
-                    Your payment is in escrow — the seller has been notified to deliver. Confirm
-                    receipt when it arrives, or do nothing and get refunded automatically after
-                    the delivery window.
-                  </p>
-                  {orderPda && (
-                    <Link
-                      href={`/orders/${orderPda}`}
-                      className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-xl bg-accent px-5 text-sm font-semibold text-foreground"
-                    >
-                      Track this order
-                    </Link>
-                  )}
-                  <a
-                    href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 inline-block font-mono text-[10px] text-white/50 underline"
-                  >
-                    View transaction
-                  </a>
+            <div className="grid lg:grid-cols-[1.08fr_.92fr]">
+              <div className="p-7 sm:p-11 lg:border-r lg:border-border">
+                <p className="text-[11px] font-semibold text-muted">You’re paying for</p>
+                <h1 className="mt-5 max-w-xl font-serif text-5xl leading-[.91] tracking-[-.055em] sm:text-7xl">{listing.title}</h1>
+                <p className="mt-5 max-w-lg text-sm leading-6 text-muted">{listing.description}</p>
+                <div className="mt-12 flex items-end justify-between border-b border-border pb-7">
+                  <strong className="font-serif text-6xl font-normal leading-none tracking-[-.06em]">{(normalAction?.label ?? listing.label).replace("Buy for ", "")}</strong>
+                  <span className="pb-1 text-xs font-semibold">USDC</span>
                 </div>
-              )}
+                <dl className="mt-5 text-[12px]">
+                  <div className="flex justify-between gap-6 py-3"><dt className="text-muted">Payment destination</dt><dd className="font-semibold">Program escrow</dd></div>
+                  <div className="flex justify-between gap-6 py-3"><dt className="text-muted">Seller receives funds</dt><dd className="font-semibold">After you confirm</dd></div>
+                  <div className="flex justify-between gap-6 py-3"><dt className="text-muted">If delivery is unconfirmed</dt><dd className="font-semibold">Refundable after {windowLabel(listing.deliveryWindowSeconds)}</dd></div>
+                  <div className="flex justify-between gap-6 py-3"><dt className="text-muted">Liminal fee</dt><dd className="font-semibold">$0.00</dd></div>
+                </dl>
+              </div>
 
-              {payError && (
-                <div className="flex flex-col gap-1">
-                  <p className="text-sm font-medium text-red-700">{payError.headline}</p>
-                  {payError.detail && (
-                    <p className="break-all text-[11px] text-muted">{payError.detail}</p>
-                  )}
+              <div className="flex flex-col bg-[#ded8ce] p-7 sm:p-10">
+                <h2 className="font-serif text-4xl leading-[.95] tracking-[-.045em]">{publicKey ? "Approve the escrow payment." : "Connect your paying wallet."}</h2>
+                <p className="mt-4 text-[13px] leading-6 text-muted">{publicKey ? "Review the amount once more, then approve it in your wallet. Liminal cannot access your keys." : "No account or password. Your wallet identifies this purchase and keeps it available in your order history."}</p>
+
+                <div className="mt-8 flex flex-col gap-4">
+                  <WalletMultiButton />
+                  {sponsoredAction && payState !== "confirmed" && publicKey && <label className="rounded-xl border border-foreground/15 bg-white/35 p-4 text-sm"><span className="flex items-center gap-3 font-medium"><input type="checkbox" checked={gasless} onChange={(e) => setGasless(e.target.checked)} />I don’t have SOL for the network fee</span><span className="mt-1 block pl-6 text-[11px] leading-4 text-muted">A relayer can cover it for $0.01, added to the transaction.</span></label>}
+                  {publicKey && payState !== "confirmed" && <button onClick={handlePay} disabled={payState === "signing" || payState === "sending"} className="inline-flex h-13 items-center justify-center rounded-xl bg-foreground px-6 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 disabled:opacity-50">{payState === "signing" ? "Confirm in your wallet…" : payState === "sending" ? "Protecting payment…" : gasless && sponsoredAction ? sponsoredAction.label : (normalAction?.label ?? listing.label)}</button>}
+                  {payState === "confirmed" && signature && <div className="rounded-2xl bg-foreground p-6 text-sm text-white"><p className="font-serif text-3xl tracking-[-.04em] text-accent">Payment is protected.</p><p className="mt-3 leading-6 text-white/60">The seller can now deliver. Confirm only after you receive what was promised; otherwise the payment becomes refundable after the delivery window.</p>{orderPda && <Link href={`/orders/${orderPda}`} className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-xl bg-accent px-5 text-sm font-semibold text-foreground">Track this order</Link>}<a href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`} target="_blank" rel="noopener noreferrer" className="mt-4 inline-block font-mono text-[10px] text-white/50 underline">View transaction</a></div>}
+                  {payError && <div className="flex flex-col gap-1"><p className="text-sm font-medium text-red-700">{payError.headline}</p>{payError.detail && <p className="break-all text-[11px] text-muted">{payError.detail}</p>}</div>}
                 </div>
-              )}
+                <div className="mt-auto pt-10 text-[11px] leading-5 text-muted">This demo uses test USDC on Solana devnet. No real-value payment is made.</div>
+              </div>
             </div>
           </section>
-        </div>}
+        </>}
       </main>
     </div>
   );
