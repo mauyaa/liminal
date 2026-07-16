@@ -635,6 +635,43 @@ injection (tag managers, `next/script`) where `document.currentScript` is
 null, and falls back to same-tab navigation when popups are blocked.
 Optional `data-label` and `data-theme="light"` attributes.
 
+## Positioning, sandbox, and commercial pages
+
+The product's front door now sells conditional settlement, not "another
+crypto checkout": the landing page leads with *"Stablecoin payments that
+release only when the work is done"*, aimed at digital-service and
+crypto-native marketplace platforms. Around it:
+
+- `/sandbox` — a no-wallet, no-money interactive simulator: pick a use
+  case, set amount/deadline/verification method, generate the payment
+  artifacts (link, embed, API call), then drive the full lifecycle -
+  fund, verify, release, auto-refund - watching the state timeline, audit
+  trail, and the exact signed-webhook payloads a server would receive.
+  The dispute / partial-release path is included as a clearly-labeled
+  design preview of the API in development.
+- `/pricing` — planned commercial tiers plus the design-partner pilot
+  offer (everything runs free on devnet today, stated plainly).
+- `/security` — the honest posture page: smart-contract custody named as
+  custody, what's verified today, and the committed-but-not-started list
+  (external audit, KMS signing, versioned account migrations, KYB) that
+  gates real funds.
+- `/docs` — API overview, three-call quickstart, endpoint reference, and
+  webhook verification guidance.
+
+## Production smoke tests & health
+
+`scripts/smoke.mjs` asserts every public customer journey against the
+live deployment (pages render, checkout metadata correct, invalid input
+rejected, discovery manifests served, import guards hold, automation
+endpoints locked, health green) and runs on a GitHub Actions schedule
+(`.github/workflows/smoke.yml`). `GET /api/health` compares the migration
+count this build expects against what the connected database has actually
+applied - the exact silent-drift class that broke the mobile checkout
+once. Its first production run immediately caught real drift (the
+raw-SQL-applied migrations 0005/0006 had never been recorded in drizzle's
+bookkeeping table), which was then backfilled with the exact hashes
+drizzle-kit would have written.
+
 ## Store-connect import
 
 `POST /api/merchant/import-product` + the "Import from a store URL" box in
