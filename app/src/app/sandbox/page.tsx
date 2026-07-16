@@ -117,11 +117,10 @@ export default function SandboxPage() {
     state === "CREATED" ? 0 : state === "FUNDED" ? 1 : state === "VERIFIED" || state === "DISPUTED" ? 2 : 3;
 
   return (
-    <div className="flex flex-1 justify-center px-6 py-16">
-      <main className="flex w-full max-w-2xl flex-col gap-8">
-        <div className="flex flex-col gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">Sandbox — no wallet, no real money</h1>
-          <p className="text-sm leading-6 text-muted">
+    <div className="route-shell">
+      <main className="route-main route-main--narrow">
+        <div className="route-heading"><h1 className="route-title">Break the flow safely.</h1>
+          <p className="route-lede">
             Design a protected payment, then drive its whole lifecycle and watch the state,
             audit trail, and webhooks your systems would receive. The real thing runs on devnet
             with the same shapes —{" "}
@@ -132,7 +131,7 @@ export default function SandboxPage() {
           </p>
         </div>
 
-        <section className="flex flex-col gap-4">
+        <section className="surface flex flex-col gap-4 p-6 sm:p-8">
           <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
             1 · Pick a use case
           </h2>
@@ -155,7 +154,7 @@ export default function SandboxPage() {
           </div>
         </section>
 
-        <section className="flex flex-col gap-4">
+        <section className="surface flex flex-col gap-4 p-6 sm:p-8">
           <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
             2 · Set the conditions
           </h2>
@@ -217,7 +216,7 @@ export default function SandboxPage() {
           </div>
         </section>
 
-        <section className="flex flex-col gap-4">
+        <section className="surface flex flex-col gap-4 p-6 sm:p-8">
           <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
             3 · Generate the protected payment
           </h2>
@@ -249,7 +248,7 @@ export default function SandboxPage() {
         </section>
 
         {generated && (
-          <section className="flex flex-col gap-4">
+          <section className="flex flex-col gap-4 rounded-[28px] bg-[#ded8ce] p-6 sm:p-8">
             <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
               4 · Drive the lifecycle
             </h2>

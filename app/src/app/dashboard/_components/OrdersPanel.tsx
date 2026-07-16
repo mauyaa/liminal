@@ -38,6 +38,12 @@ export default function OrdersPanel() {
     refresh();
   }, [refresh]);
 
+  const orderedByAction = [...orders].sort((a, b) => {
+    if (a.escrowStatus === "FUNDED" && b.escrowStatus !== "FUNDED") return -1;
+    if (b.escrowStatus === "FUNDED" && a.escrowStatus !== "FUNDED") return 1;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
@@ -63,7 +69,7 @@ export default function OrdersPanel() {
         <EmptyState message="No orders yet. Share a checkout link to get your first one." />
       ) : (
         <ul className="flex flex-col gap-2">
-          {orders.map((o) => (
+          {orderedByAction.map((o) => (
             <li key={o.orderPda}>
               <Link
                 href={`/orders/${o.orderPda}`}

@@ -10,11 +10,10 @@ const SNIPPET = `<script src="https://app-eight-lovat-94.vercel.app/embed.js"
 
 export default function EmbedPage() {
   return (
-    <div className="flex flex-1 justify-center px-6 py-16">
-      <main className="flex w-full max-w-xl flex-col gap-8">
-        <div className="flex flex-col gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">Sell anywhere with one script tag</h1>
-          <p className="text-sm leading-6 text-muted">
+    <div className="route-shell">
+      <main className="route-main route-main--narrow">
+        <div className="route-heading"><h1 className="route-title">Sell anywhere.</h1>
+          <p className="route-lede">
             Paste this on any website - a blog, a docs page, a plain HTML file - and it renders
             a checkout button for your listing. The buyer pays into on-chain escrow on the
             hosted checkout page; your site never touches wallets or funds. The label shows the
@@ -23,9 +22,9 @@ export default function EmbedPage() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="surface flex flex-col gap-3 p-6 sm:p-8">
           <h2 className="text-sm font-medium tracking-tight">The snippet</h2>
-          <pre className="overflow-x-auto rounded-md border border-border bg-foreground/[0.03] px-4 py-3 font-mono text-[12px] leading-5">
+          <pre className="overflow-x-auto rounded-2xl bg-foreground px-5 py-5 font-mono text-[11px] leading-5 text-white">
             {SNIPPET}
           </pre>
           <p className="text-[13px] text-muted">
@@ -36,7 +35,7 @@ export default function EmbedPage() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-border pt-6">
+        <div className="flex flex-col gap-4 rounded-[28px] bg-[#ded8ce] p-6 sm:p-8">
           <h2 className="text-sm font-medium tracking-tight">Live demo - this is the real embed script running</h2>
           <Script src="/embed.js" data-liminal-sku="liminal-demo-1" strategy="lazyOnload" />
           <p className="text-[13px] text-muted">

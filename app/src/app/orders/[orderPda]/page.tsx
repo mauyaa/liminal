@@ -32,19 +32,17 @@ interface OrderDetail {
 
 type ActionState = "idle" | "building" | "signing" | "sending" | "done" | "error";
 
-/** Paid -> In escrow -> Delivered? -> Complete/Refunded, current node emphasized. */
+/** The exact on-chain lifecycle, expressed in buyer language. */
 function Timeline({ status }: { status: string }) {
   const finalLabel = status === "REFUNDED" ? "Refunded" : "Complete";
-  const nodes = ["Paid", "In escrow", "Delivered?", finalLabel];
-  // Index of the furthest node reached for each status.
-  const reached =
-    status === "SETTLED" || status === "REFUNDED" ? 3 : status === "FUNDED" ? 2 : -1;
+  const nodes = ["Payment protected", "Await delivery", finalLabel];
+  const reached = status === "SETTLED" || status === "REFUNDED" ? 2 : status === "FUNDED" ? 1 : 0;
 
   return (
     <div className="flex items-start">
       {nodes.map((label, i) => {
-        const done = i < reached || reached === 3;
-        const current = i === reached && reached !== 3;
+        const done = i < reached || reached === 2;
+        const current = i === reached && reached !== 2;
         return (
           <div key={label} className="flex flex-1 flex-col items-center gap-1.5">
             <div className="flex w-full items-center">
@@ -144,28 +142,29 @@ export default function OrderPage() {
     actionState === "building" ? "Preparing…" : actionState === "signing" ? "Confirm in your wallet…" : "Sending…";
 
   return (
-    <div className="flex flex-1 justify-center px-6 py-16">
-      <main className="flex w-full max-w-md flex-col gap-6">
+    <div className="route-shell">
+      <main className="route-main route-main--narrow">
+        <div className="route-heading"><h1 className="route-title">Track the promise.</h1><p className="route-lede">See exactly where the payment is, what has happened, and what moves it next.</p></div>
         {loadError && <p className="text-sm text-red-500">{loadError}</p>}
 
         {order && (
           <>
-            <div className="flex items-center gap-4">
+            <div className="surface flex items-center gap-5 p-5 sm:p-7">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={order.imageUrl}
                 alt={order.title}
-                className="h-16 w-16 rounded-lg border border-border object-cover"
+                className="h-20 w-20 rounded-2xl border border-border object-cover"
               />
               <div className="flex flex-col gap-0.5">
-                <h1 className="text-lg font-semibold tracking-tight">{order.title}</h1>
-                <p className="text-sm text-muted">
+                <h2 className="font-serif text-3xl tracking-[-.04em]">{order.title}</h2>
+                <p className="mt-1 text-xs text-muted">
                   {order.storeName} · ${(order.priceUsdc / 1_000_000).toFixed(2)}
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-col gap-4 rounded-lg border border-border px-4 py-4">
+            <div className="flex flex-col gap-8 rounded-[28px] border border-border bg-[#ded8ce] px-6 py-7 sm:px-9 sm:py-10">
               <Timeline status={status} />
 
               {status === "INITIALIZED" && (
@@ -176,8 +175,8 @@ export default function OrderPage() {
 
               {status === "FUNDED" && !refundable && (
                 <div className="flex flex-col gap-1">
-                  <p className="text-sm font-medium">Your payment is protected in escrow.</p>
-                  <p className="text-[13px] leading-5 text-muted">
+                  <p className="font-serif text-4xl leading-[.95] tracking-[-.045em]">Your payment is protected in escrow.</p>
+                  <p className="mt-4 max-w-xl text-[13px] leading-6 text-muted">
                     Once your order arrives, confirm below to release the payment. Not delivered
                     by <span className="font-medium text-foreground">{deadline > 0 ? new Date(deadline * 1000).toLocaleString() : "the deadline"}</span>?
                     You get refunded automatically — no action needed.
@@ -187,8 +186,8 @@ export default function OrderPage() {
 
               {status === "FUNDED" && refundable && (
                 <div className="flex flex-col gap-1">
-                  <p className="text-sm font-medium">Delivery deadline passed.</p>
-                  <p className="text-[13px] leading-5 text-muted">
+                  <p className="font-serif text-4xl tracking-[-.045em]">Delivery deadline passed.</p>
+                  <p className="mt-4 text-[13px] leading-6 text-muted">
                     You can claim your refund now — or do nothing, it&apos;s processed
                     automatically.
                   </p>
@@ -197,7 +196,7 @@ export default function OrderPage() {
 
               {status === "SETTLED" && (
                 <div className="flex flex-col gap-1">
-                  <p className="text-sm font-medium">Order complete.</p>
+                  <p className="font-serif text-4xl tracking-[-.045em]">Order complete.</p>
                   <p className="text-[13px] leading-5 text-muted">
                     You confirmed delivery and the seller was paid. Thanks for using escrow that
                     just works.
@@ -207,7 +206,7 @@ export default function OrderPage() {
 
               {status === "REFUNDED" && (
                 <div className="flex flex-col gap-1">
-                  <p className="text-sm font-medium">Refunded in full.</p>
+                  <p className="font-serif text-4xl tracking-[-.045em]">Refunded in full.</p>
                   <p className="text-[13px] leading-5 text-muted">
                     Delivery wasn&apos;t confirmed by the deadline, so your payment came straight
                     back. That&apos;s the whole point.
@@ -224,7 +223,7 @@ export default function OrderPage() {
                   <button
                     onClick={() => runLifecycleAction("settle")}
                     disabled={busy}
-                    className="inline-flex h-11 items-center justify-center rounded-full bg-foreground px-6 text-sm font-medium text-background transition-opacity hover:opacity-85 disabled:opacity-50"
+                    className="inline-flex h-13 items-center justify-center rounded-xl bg-foreground px-6 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 disabled:opacity-50"
                   >
                     {busy ? busyLabel : "Confirm receipt - release funds to seller"}
                   </button>
@@ -239,7 +238,7 @@ export default function OrderPage() {
                 <button
                   onClick={() => runLifecycleAction("refund")}
                   disabled={busy}
-                  className="inline-flex h-11 items-center justify-center rounded-full bg-foreground px-6 text-sm font-medium text-background transition-opacity hover:opacity-85 disabled:opacity-50"
+                  className="inline-flex h-13 items-center justify-center rounded-xl bg-foreground px-6 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 disabled:opacity-50"
                 >
                   {busy ? busyLabel : "Claim refund now"}
                 </button>
@@ -254,7 +253,7 @@ export default function OrderPage() {
               {actionError && <p className="text-sm text-red-500">{actionError}</p>}
             </div>
 
-            <div className="flex flex-col gap-1 border-t border-border pt-4 text-[13px] text-muted">
+            <div className="grid gap-2 rounded-2xl border border-border bg-surface p-5 text-[12px] text-muted sm:grid-cols-2">
               {order.fundTxSignature && (
                 <a
                   href={`https://explorer.solana.com/tx/${order.fundTxSignature}?cluster=devnet`}
