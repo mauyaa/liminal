@@ -3,8 +3,8 @@ import Link from "next/link";
 
 const nav = [
   { href: "/#how-it-works", label: "How it works" },
-  { href: "/buy/liminal-demo-1", label: "For buyers" },
-  { href: "/dashboard", label: "For sellers" },
+  { href: "/buy/liminal-demo-1", label: "Demo checkout" },
+  { href: "/dashboard", label: "Seller dashboard" },
 ];
 
 export function SiteHeader() {

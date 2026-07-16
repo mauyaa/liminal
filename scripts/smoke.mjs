@@ -32,10 +32,10 @@ const journeys = [
   // Marketing & product pages
   async () => {
     const r = await get("/");
-    check("landing renders positioning", r.status === 200 && r.text.includes("release only when the work is done"));
+    check("landing renders the actual escrow product", r.status === 200 && r.text.includes("Checkout that waits for delivery") && r.text.includes("Open the $1 demo checkout"));
   },
   async () => {
-    for (const p of ["/sandbox", "/pricing", "/docs", "/security", "/embed", "/orders"]) {
+    for (const p of ["/dashboard", "/sandbox", "/pricing", "/docs", "/security", "/embed", "/orders"]) {
       const r = await get(p);
       check(`${p} renders`, r.status === 200);
     }
