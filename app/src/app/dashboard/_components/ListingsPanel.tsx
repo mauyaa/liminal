@@ -42,6 +42,46 @@ export default function ListingsPanel() {
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
 
+  const [importUrl, setImportUrl] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importNote, setImportNote] = useState<string | null>(null);
+
+  const handleImport = useCallback(async () => {
+    if (!importUrl) return;
+    setImporting(true);
+    setImportNote(null);
+    try {
+      const res = await fetch("/api/merchant/import-product", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: importUrl }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.message ?? "Import failed");
+
+      setForm((f) => ({
+        ...f,
+        title: body.title ?? f.title,
+        description: body.description ?? f.description,
+        imageUrl: body.imageUrl ?? f.imageUrl,
+        priceUsd: body.priceUsd != null ? String(body.priceUsd) : f.priceUsd,
+        storeName: body.storeName ?? f.storeName,
+        sku:
+          f.sku ||
+          (body.title ?? "")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 40),
+      }));
+      setImportNote("Imported — review the details below, then publish.");
+    } catch (err) {
+      setImportNote(err instanceof Error ? err.message : "Import failed");
+    } finally {
+      setImporting(false);
+    }
+  }, [importUrl]);
+
   const refreshListings = useCallback(async () => {
     if (!publicKey) return;
     setLoadingListings(true);
@@ -147,6 +187,34 @@ export default function ListingsPanel() {
           onSubmit={handleSubmit}
           className="flex flex-col gap-8 rounded-xl border border-border p-5"
         >
+          <Field
+            label="Import from a store URL"
+            hint="Already sell this somewhere? Paste the product page — Shopify, WooCommerce, most stores work — and we'll fill the form from its own product data."
+          >
+            <div className="flex gap-3">
+              <input
+                type="url"
+                placeholder="https://yourstore.com/products/sticker-pack"
+                className={`${inputBase} flex-1`}
+                value={importUrl}
+                onChange={(e) => setImportUrl(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={handleImport}
+                disabled={importing || !importUrl}
+                className="inline-flex h-10 shrink-0 items-center justify-center rounded-md border border-border px-4 text-sm font-medium transition-colors hover:bg-foreground/5 disabled:opacity-50"
+              >
+                {importing ? "Importing…" : "Import"}
+              </button>
+            </div>
+          </Field>
+          {importNote && (
+            <p className="-mt-4 text-[13px] text-muted" role="status">
+              {importNote}
+            </p>
+          )}
+
           <FormSection title="What you're selling">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Store name" hint="Shown to buyers at checkout.">
