@@ -635,6 +635,38 @@ injection (tag managers, `next/script`) where `document.currentScript` is
 null, and falls back to same-tab navigation when popups are blocked.
 Optional `data-label` and `data-theme="light"` attributes.
 
+## Store-connect import
+
+`POST /api/merchant/import-product` + the "Import from a store URL" box in
+the dashboard's listing form: paste any product page and the listing fills
+itself in - title, description, image, price, store name. Extraction is
+standards-based rather than brittle scraping: JSON-LD `Product` schema
+first (what Shopify, WooCommerce, BigCommerce and most storefronts emit
+for search engines), Open Graph tags as the fallback (what every link
+preview reads). A merchant reviews the prefilled form and publishes -
+imported data never auto-publishes.
+
+Hardening, since this endpoint fetches caller-supplied URLs server-side:
+SSRF guard (public http(s) only, private/loopback/link-local hosts refused,
+re-checked after redirects), 8s timeout, 1.5MB response cap, and the same
+DB-backed rate limiting as the other abuse-prone endpoints (10/min per
+IP). Scope note: the guard checks hostname literals; DNS-rebinding-grade
+protection (resolving and pinning IPs) is a mainnet-hardening item.
+
+Verified live: the deployed demo fixture (`/demo-product.html`, real
+JSON-LD + OG markup) imports completely including the $12.50 price, a real
+Shopify storefront imports via Open Graph, and both SSRF probes
+(localhost, private IP) are refused.
+
+## Autonomous scheduling
+
+`.github/workflows/poll.yml` runs every 5 minutes and hits all three
+autonomous endpoints (webhook delivery, subscription billing, expired-
+escrow refunds) - making the deployed system fully self-driving with no
+external scheduler service. One-time setup: add `CRON_SECRET` as a GitHub
+Actions repository secret (same value as the Vercel env var). The workflow
+also supports manual dispatch for verifying the wiring.
+
 ## Buyer order pages
 
 The escrow lifecycle is now fully drivable from the UI, not just the API:
