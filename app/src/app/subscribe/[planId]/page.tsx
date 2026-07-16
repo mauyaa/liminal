@@ -145,7 +145,7 @@ export default function SubscribePage() {
               className="aspect-[4/3] w-full object-cover"
             />
             <div className="p-7 sm:p-10">
-              <h2 className="mt-6 font-serif text-5xl leading-[.95] tracking-[-.05em] sm:text-7xl">{plan.title}</h2>
+              <h2 className="mt-6 font-serif text-3xl leading-[1] tracking-[-.04em] sm:text-4xl">{plan.title}</h2>
               <p className="mt-5 text-sm leading-6 text-muted">{plan.description}</p>
             </div>
             </section>

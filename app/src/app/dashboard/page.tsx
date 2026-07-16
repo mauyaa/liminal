@@ -33,7 +33,7 @@ export default function DashboardPage() {
         </div>
 
         {!publicKey ? (
-          <div className="surface p-8 sm:p-12"><h2 className="font-serif text-4xl tracking-[-.045em]">Connect a devnet wallet to begin.</h2><p className="mt-4 max-w-lg text-sm leading-6 text-muted">No setup wizard and no account to create. Your wallet is the authority for your store.</p></div>
+          <div className="surface p-8 sm:p-12"><h2 className="font-serif text-3xl tracking-[-.04em]">Connect a devnet wallet to begin.</h2><p className="mt-4 max-w-lg text-sm leading-6 text-muted">No setup wizard and no account to create. Your wallet is the authority for your store.</p></div>
         ) : (
           <>
             <nav className="flex gap-1 overflow-x-auto rounded-2xl bg-foreground/[.055] p-1.5">

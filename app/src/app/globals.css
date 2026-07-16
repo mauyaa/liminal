@@ -57,7 +57,7 @@ button { cursor: pointer; }
 .route-shell { display: flex; width: min(calc(100% - 44px), 1380px); margin: 0 auto; padding: 70px 0 110px; }
 .route-main { display: flex; width: 100%; max-width: 1120px; margin: 0 auto; flex-direction: column; gap: 42px; }
 .route-main--narrow { max-width: 860px; }
-.route-title { font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif; font-size: clamp(3.4rem,6.5vw,6.6rem); font-weight: 400; line-height: .92; letter-spacing: -.055em; }
+.route-title { font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif; font-size: clamp(2.45rem,3.8vw,3.8rem); font-weight: 400; line-height: 1; letter-spacing: -.045em; }
 .route-lede { max-width: 660px; color: var(--muted); font-size: 16px; line-height: 1.65; letter-spacing: -.012em; }
 .route-heading { display: flex; flex-direction: column; gap: 20px; }
 .surface { border: 1px solid var(--border); border-radius: 24px; background: var(--surface); }
@@ -80,7 +80,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .site-header__cta { gap: 8px; padding: 0 13px; }
   .site-brand > span:last-child { display: none; }
   .route-shell { width: min(calc(100% - 24px),1380px); padding: 38px 0 72px; }
-  .route-title { font-size: clamp(3.1rem,16vw,4.8rem); }
+  .route-title { font-size: clamp(2.3rem,10vw,3.15rem); }
   .site-footer { width: calc(100% - 20px); margin-bottom: 10px; padding: 34px 24px 18px; }
   .site-footer__links { grid-template-columns: 1fr 1fr; }
   .site-footer__base { flex-direction: column; gap: 8px; }

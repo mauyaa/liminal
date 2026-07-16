@@ -35,7 +35,7 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
       <section className="grid gap-5 rounded-[28px] bg-foreground p-7 text-white sm:grid-cols-[1fr_auto] sm:items-end sm:p-9">
         <div>
           <p className="text-[10px] font-semibold tracking-[.12em] text-white/45 uppercase">Next best action</p>
-          <h2 className="mt-4 max-w-2xl font-serif text-4xl leading-[.95] tracking-[-.045em] sm:text-5xl">
+          <h2 className="mt-4 max-w-2xl font-serif text-3xl leading-[1.02] tracking-[-.04em]">
             {listings === 0
               ? "Create the checkout your customer will pay through."
               : funded > 0
