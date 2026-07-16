@@ -1,0 +1,25 @@
+# Production smoke tests for every public customer journey - catches the
+# class of silent breakage where the API keeps answering but a journey is
+# broken (e.g. schema drift, orphaned on-chain accounts). No secrets
+# needed: it asserts the automation endpoints reject unauthenticated calls.
+name: smoke
+
+on:
+  schedule:
+    - cron: "17 */2 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "scripts/smoke.mjs"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/smoke.mjs

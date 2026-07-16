@@ -1,25 +1,32 @@
 import Link from "next/link";
 
-const DEMO_ACTION_URL =
-  "https://app-eight-lovat-94.vercel.app/api/actions/buy/liminal-demo-1";
 const GITHUB_URL = "https://github.com/mauyaa/liminal";
 const PROGRAM_ID = "AHJnF6Ppec39gEfLnkHtMk11V23gwYPfKa3C6F88bbkD";
 
-const tags = ["SOLANA", "DEVNET", "ZERO-FEE ESCROW"];
+const tags = ["CONDITIONAL STABLECOIN PAYMENTS", "SOLANA", "DEVNET"];
 
 const steps = [
   {
-    title: "Buyer pays",
-    body: "Funds go to a neutral escrow account — not the seller.",
+    title: "Funds lock on-chain",
+    body: "The buyer pays into neutral escrow — your platform never holds the money.",
   },
   {
-    title: "Seller delivers",
-    body: "The payment is visibly locked and waiting.",
+    title: "Completion is proven",
+    body: "Buyer confirmation, a signed delivery attestation, or your platform's own event.",
   },
   {
-    title: "Buyer confirms — seller's paid",
-    body: "No confirmation by the deadline? Automatic refund.",
+    title: "Settlement is automatic",
+    body: "Funds release to the seller — or return to the buyer when the deadline passes. No manual reconciliation.",
   },
+];
+
+const useCases = [
+  "Freelance & service marketplaces",
+  "Digital agencies & dev studios",
+  "Software & license sellers",
+  "AI-agent & API marketplaces",
+  "Creator commerce",
+  "Cross-border contractors",
 ];
 
 export default function Home() {
@@ -38,13 +45,14 @@ export default function Home() {
         </div>
 
         <div className="flex flex-col gap-4">
-          <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl">
-            Checkout that can&apos;t be rugged.
+          <h1 className="text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl">
+            Stablecoin payments that release only when the work is done.
           </h1>
-          <p className="max-w-md text-lg leading-7 text-muted">
-            Liminal locks the buyer&apos;s payment in on-chain escrow until they
-            confirm delivery — or refunds it automatically. No platform fee.
-            No middleman holding the money.
+          <p className="max-w-lg text-lg leading-7 text-muted">
+            Liminal is programmable escrow infrastructure for marketplaces and
+            digital-service platforms: lock funds, verify completion, and
+            automatically release or refund — through one API, without holding
+            customer money yourself.
           </p>
         </div>
 
@@ -62,56 +70,58 @@ export default function Home() {
 
         <div className="flex flex-col gap-3 border-t border-border pt-8 sm:flex-row sm:items-center">
           <Link
-            href="/buy/liminal-demo-1"
+            href="/sandbox"
             className="inline-flex h-11 items-center justify-center rounded-full bg-foreground px-6 text-sm font-medium text-background transition-opacity hover:opacity-85"
           >
-            Try the demo checkout
-          </Link>
-          <Link
-            href="/dashboard"
-            className="inline-flex h-11 items-center justify-center rounded-full border border-border px-6 text-sm font-medium transition-colors hover:bg-foreground/5"
-          >
-            Open merchant dashboard
+            Create a protected test payment
           </Link>
           <a
-            href={GITHUB_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+            href="mailto:miniggs10@gmail.com?subject=Liminal%20pilot"
             className="inline-flex h-11 items-center justify-center rounded-full border border-border px-6 text-sm font-medium transition-colors hover:bg-foreground/5"
           >
-            View source
+            Talk to us about a pilot
           </a>
         </div>
 
-        <p className="text-[13px] text-muted">
-          Sell anywhere:{" "}
-          <Link href="/embed" className="underline">
-            embed a checkout button
-          </Link>{" "}
-          on any website with one script tag. Already bought something?{" "}
-          <Link href="/orders" className="underline">
-            Track your orders
-          </Link>
-          .
-        </p>
-
-        <div className="flex flex-col gap-1.5 text-[13px] text-muted">
-          <p>
-            Or open it as a Blink directly in the{" "}
-            <a
-              href="https://www.blinks.xyz/inspector"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
-              Blinks Inspector
-            </a>
-            :
+        <div className="flex flex-col gap-2">
+          <p className="text-[11px] font-medium tracking-[0.14em] text-muted">
+            BUILT FOR
           </p>
-          <code className="break-all rounded-md border border-border bg-foreground/[0.03] px-3 py-2 font-mono text-[12px]">
-            {DEMO_ACTION_URL}
-          </code>
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+            {useCases.map((u) => (
+              <span key={u} className="text-[13px] text-muted">
+                {u}
+              </span>
+            ))}
+          </div>
         </div>
+
+        <nav className="flex flex-wrap gap-x-5 gap-y-2 border-t border-border pt-6 text-[13px]">
+          <Link href="/sandbox" className="underline">
+            Sandbox
+          </Link>
+          <Link href="/pricing" className="underline">
+            Pricing
+          </Link>
+          <Link href="/docs" className="underline">
+            Documentation
+          </Link>
+          <Link href="/security" className="underline">
+            Security
+          </Link>
+          <Link href="/embed" className="underline">
+            Embed
+          </Link>
+          <Link href="/dashboard" className="underline">
+            Dashboard
+          </Link>
+          <Link href="/buy/liminal-demo-1" className="underline">
+            Live demo checkout
+          </Link>
+          <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="underline">
+            GitHub
+          </a>
+        </nav>
 
         <p className="text-[12px] text-muted">
           Program (devnet): <code className="font-mono">{PROGRAM_ID}</code>
