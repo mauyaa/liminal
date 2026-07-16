@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { Transaction } from "@solana/web3.js";
-import { inputClass, MERCHANT_STATUS } from "./shared";
+import { EmptyState, Field, FormSection, StatusChip, inputBase } from "./ui";
 
 interface Listing {
   sku: string;
@@ -26,6 +26,7 @@ export default function ListingsPanel() {
 
   const [listings, setListings] = useState<Listing[]>([]);
   const [loadingListings, setLoadingListings] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const [form, setForm] = useState({
     storeName: "",
@@ -99,9 +100,10 @@ export default function ListingsPanel() {
         await connection.confirmTransaction(sig, "confirmed");
 
         setFormSuccess(
-          `Listing live. Share your checkout link: ${window.location.origin}/buy/${form.sku} — or embed it on any site from /embed.`
+          `Listing live. Share your checkout link: ${window.location.origin}/buy/${form.sku}`
         );
         setForm((f) => ({ ...f, sku: "", title: "", description: "", imageUrl: "", priceUsd: "" }));
+        setCreating(false);
         refreshListings();
       } catch (err) {
         setFormError(err instanceof Error ? err.message : "Failed to create listing");
@@ -112,130 +114,180 @@ export default function ListingsPanel() {
     [publicKey, signTransaction, connection, form, refreshListings]
   );
 
+  const newListingButton = (
+    <button
+      onClick={() => {
+        setFormSuccess(null);
+        setCreating(true);
+      }}
+      className="inline-flex h-9 items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background transition-opacity hover:opacity-85"
+    >
+      New listing
+    </button>
+  );
+
   return (
-    <div className="flex flex-col gap-10">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3 border-b border-border pb-10">
-        <h2 className="text-sm font-medium tracking-tight">New listing</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <input
-            required
-            placeholder="Store name"
-            className={inputClass}
-            value={form.storeName}
-            onChange={(e) => setForm((f) => ({ ...f, storeName: e.target.value }))}
-          />
-          <div className="flex flex-col gap-1">
-            <input
-              required
-              placeholder="SKU (unique)"
-              className={inputClass}
-              value={form.sku}
-              onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
-            />
-            <span className="text-[11px] leading-4 text-muted">
-              Becomes your checkout link: /buy/your-sku
-            </span>
-          </div>
-          <input
-            required
-            placeholder="Title"
-            className={`${inputClass} col-span-2`}
-            value={form.title}
-            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-          />
-          <input
-            placeholder="Description (optional)"
-            className={`${inputClass} col-span-2`}
-            value={form.description}
-            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-          />
-          <input
-            required
-            placeholder="Image URL"
-            className={`${inputClass} col-span-2`}
-            value={form.imageUrl}
-            onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
-          />
-          <input
-            required
-            type="number"
-            step="0.01"
-            min="0.01"
-            placeholder="Price (USD)"
-            className={inputClass}
-            value={form.priceUsd}
-            onChange={(e) => setForm((f) => ({ ...f, priceUsd: e.target.value }))}
-          />
-          <div className="flex flex-col gap-1">
-            <input
-              required
-              type="number"
-              step="1"
-              min="1"
-              placeholder="Delivery window (hours)"
-              className={inputClass}
-              value={form.deliveryWindowHours}
-              onChange={(e) => setForm((f) => ({ ...f, deliveryWindowHours: e.target.value }))}
-            />
-            <span className="text-[11px] leading-4 text-muted">
-              Your delivery promise — buyers auto-refund if unconfirmed past this.
-            </span>
-          </div>
-          <div className="col-span-2 flex flex-col gap-1">
-            <input
-              required
-              placeholder="Stablecoin mint address"
-              className={`${inputClass} font-mono text-xs`}
-              value={form.mint}
-              onChange={(e) => setForm((f) => ({ ...f, mint: e.target.value }))}
-            />
-            <span className="text-[11px] leading-4 text-muted">
-              Devnet demo token — leave as-is unless you know why.
-            </span>
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className="mt-2 inline-flex h-10 w-fit items-center justify-center rounded-full bg-foreground px-6 text-sm font-medium text-background transition-opacity hover:opacity-85 disabled:opacity-50"
-        >
-          {submitting ? "Creating…" : "Create listing"}
-        </button>
-
-        {formError && <p className="text-sm text-red-500">{formError}</p>}
-        {formSuccess && <p className="text-sm text-green-600 dark:text-green-400">{formSuccess}</p>}
-      </form>
-
-      <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium tracking-tight">
-          Your listings {loadingListings && <span className="text-muted">(refreshing…)</span>}
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center justify-between">
+        <h2 className="text-[15px] font-medium tracking-tight">
+          Your listings{" "}
+          {loadingListings && <span className="font-normal text-muted">refreshing…</span>}
         </h2>
-        {listings.length === 0 ? (
-          <p className="text-sm text-muted">No listings yet. Your first one takes about a minute.</p>
+        {!creating && newListingButton}
+      </div>
+
+      {formSuccess && (
+        <p className="rounded-lg border border-border bg-foreground/[0.03] px-4 py-3 text-sm text-green-600 dark:text-green-400">
+          {formSuccess}
+        </p>
+      )}
+
+      {creating && (
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-8 rounded-xl border border-border p-5"
+        >
+          <FormSection title="What you're selling">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Store name" hint="Shown to buyers at checkout.">
+                <input
+                  required
+                  placeholder="Aurora Prints"
+                  className={inputBase}
+                  value={form.storeName}
+                  onChange={(e) => setForm((f) => ({ ...f, storeName: e.target.value }))}
+                />
+              </Field>
+              <Field label="Title">
+                <input
+                  required
+                  placeholder="Sticker pack — series one"
+                  className={inputBase}
+                  value={form.title}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                />
+              </Field>
+            </div>
+            <Field label="Description" hint="Optional — one sentence buyers see under the title.">
+              <input
+                placeholder="Ten holographic stickers, shipped worldwide."
+                className={inputBase}
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              />
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="SKU" hint={`Becomes your checkout link: /buy/${form.sku || "your-sku"}`}>
+                <input
+                  required
+                  placeholder="sticker-pack-01"
+                  className={inputBase}
+                  value={form.sku}
+                  onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
+                />
+              </Field>
+              <Field label="Image URL">
+                <input
+                  required
+                  placeholder="https://…/product.png"
+                  className={inputBase}
+                  value={form.imageUrl}
+                  onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
+                />
+              </Field>
+            </div>
+          </FormSection>
+
+          <FormSection title="Price & delivery">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Price (USD)">
+                <input
+                  required
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="19.99"
+                  className={inputBase}
+                  value={form.priceUsd}
+                  onChange={(e) => setForm((f) => ({ ...f, priceUsd: e.target.value }))}
+                />
+              </Field>
+              <Field
+                label="Delivery window (hours)"
+                hint="Your delivery promise — buyers auto-refund if unconfirmed past this."
+              >
+                <input
+                  required
+                  type="number"
+                  step="1"
+                  min="1"
+                  placeholder="24"
+                  className={inputBase}
+                  value={form.deliveryWindowHours}
+                  onChange={(e) => setForm((f) => ({ ...f, deliveryWindowHours: e.target.value }))}
+                />
+              </Field>
+            </div>
+            <Field label="Stablecoin mint" hint="Devnet demo token — leave as-is unless you know why.">
+              <input
+                required
+                className={`${inputBase} font-mono text-xs`}
+                value={form.mint}
+                onChange={(e) => setForm((f) => ({ ...f, mint: e.target.value }))}
+              />
+            </Field>
+          </FormSection>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex h-10 items-center justify-center rounded-full bg-foreground px-6 text-sm font-medium text-background transition-opacity hover:opacity-85 disabled:opacity-50"
+            >
+              {submitting ? "Confirm in your wallet…" : "Create listing"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreating(false)}
+              className="inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium text-muted transition-colors hover:text-foreground"
+            >
+              Cancel
+            </button>
+          </div>
+
+          {formError && <p className="text-sm text-red-500">{formError}</p>}
+        </form>
+      )}
+
+      {!creating &&
+        (listings.length === 0 ? (
+          <EmptyState message="No listings yet. Your first one takes about a minute." />
         ) : (
           <ul className="flex flex-col gap-2">
             {listings.map((l) => (
               <li
                 key={l.sku}
-                className="flex items-center justify-between rounded-lg border border-border px-4 py-3 text-sm"
+                className="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5"
               >
-                <div className="flex flex-col gap-0.5">
-                  <Link href={`/buy/${l.sku}`} className="font-medium underline">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={l.imageUrl}
+                  alt=""
+                  className="h-10 w-10 shrink-0 rounded-md border border-border object-cover"
+                />
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <Link href={`/buy/${l.sku}`} className="truncate text-sm font-medium hover:underline">
                     {l.title}
                   </Link>
-                  <span className="text-muted">
+                  <span className="truncate text-[12px] text-muted">
                     {l.sku} · ${(l.priceUsdc / 1_000_000).toFixed(2)}
                   </span>
                 </div>
-                <span className="rounded-full border border-border px-2.5 py-1 text-[11px] tracking-wide text-muted">
-                  {MERCHANT_STATUS[l.escrowStatus ?? ""] ?? l.escrowStatus ?? "Unknown"}
-                </span>
+                <StatusChip status={l.escrowStatus} />
               </li>
             ))}
           </ul>
-        )}
-      </div>
+        ))}
     </div>
   );
 }

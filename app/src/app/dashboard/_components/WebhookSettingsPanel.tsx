@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { inputClass } from "./shared";
+import { Field, inputBase } from "./ui";
 
 export default function WebhookSettingsPanel() {
   const { publicKey } = useWallet();
@@ -63,13 +63,15 @@ export default function WebhookSettingsPanel() {
         delivery is signed with a secret created the first time you save a URL; verify it
         server-side before trusting the payload.
       </p>
-      <input
-        type="url"
-        placeholder="https://yourdomain.com/webhooks/liminal"
-        className={inputClass}
-        value={loading ? "" : webhookUrl}
-        onChange={(e) => setWebhookUrl(e.target.value)}
-      />
+      <Field label="Endpoint URL" hint="We POST signed JSON events here on every state change.">
+        <input
+          type="url"
+          placeholder="https://yourstore.com/webhooks/liminal"
+          className={inputBase}
+          value={loading ? "" : webhookUrl}
+          onChange={(e) => setWebhookUrl(e.target.value)}
+        />
+      </Field>
       <button
         type="submit"
         disabled={saving || loading}
