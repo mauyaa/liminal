@@ -12,7 +12,11 @@ const LIVE = [
   },
   {
     title: "Deterministic settlement rules",
-    body: "Funds move on exactly three conditions: buyer confirmation, a verified on-chain Ed25519 delivery attestation from a configured oracle key, or deadline expiry (automatic refund to the buyer, permissionless to trigger). No admin key can redirect escrowed principal.",
+    body: "Funds move on exactly four conditions, all enforced on-chain: buyer confirmation, an oracle-attested delivery signal that auto-releases after a 48h challenge window unless disputed, deadline expiry (automatic refund, permissionless to trigger), or an oracle-attested dispute verdict. Every attestation is a real Ed25519 signature over a specific order and value, checked on-chain — no admin key can redirect escrowed principal to an arbitrary account.",
+  },
+  {
+    title: "Dispute resolution, honestly",
+    body: "A challenged delivery is resolved by a person, not an algorithm — there's no AI verdict yet, and this page won't claim there is. The operator reviews both sides' statements at /admin/disputes (gated behind a bearer secret) and issues a split; that verdict is what gets attested on-chain via resolve_dispute, and the reasoning is hashed into the same attestation so it can't be altered after the fact without invalidating the signature.",
   },
   {
     title: "Every transaction simulated before it's issued",

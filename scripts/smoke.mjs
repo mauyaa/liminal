@@ -35,9 +35,15 @@ const journeys = [
     check("landing renders the actual escrow product", r.status === 200 && r.text.includes("Get paid by strangers") && r.text.includes("Create your payment link"));
   },
   async () => {
-    for (const p of ["/dashboard", "/new", "/sandbox", "/pricing", "/docs", "/security", "/embed", "/orders"]) {
+    for (const p of ["/dashboard", "/new", "/docs", "/security", "/orders"]) {
       const r = await get(p);
       check(`${p} renders`, r.status === 200);
+    }
+  },
+  async () => {
+    for (const p of ["/pricing", "/sandbox", "/embed", "/subscribe/x"]) {
+      const r = await get(p);
+      check(`${p} is gone (cut, not parked)`, r.status === 404);
     }
   },
   // Buyer journey

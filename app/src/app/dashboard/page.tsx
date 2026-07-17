@@ -5,18 +5,15 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import ListingsPanel from "./_components/ListingsPanel";
 import OrdersPanel from "./_components/OrdersPanel";
-import SubscriptionsPanel from "./_components/SubscriptionsPanel";
 import WebhookSettingsPanel from "./_components/WebhookSettingsPanel";
-import OracleConfigPanel from "./_components/OracleConfigPanel";
 import DashboardHome from "./_components/DashboardHome";
 
-type Tab = "home" | "listings" | "orders" | "subscriptions" | "automation";
+type Tab = "home" | "listings" | "orders" | "automation";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "home", label: "Home" },
   { id: "listings", label: "Checkout links" },
   { id: "orders", label: "Orders" },
-  { id: "subscriptions", label: "Subscriptions" },
   { id: "automation", label: "Automation" },
 ];
 
@@ -55,8 +52,7 @@ export default function DashboardPage() {
             <section className="surface p-5 sm:p-8">{tab === "home" && <DashboardHome onNavigate={setTab} />}
             {tab === "listings" && <ListingsPanel />}
             {tab === "orders" && <OrdersPanel />}
-            {tab === "subscriptions" && <SubscriptionsPanel />}
-            {tab === "automation" && <div className="flex flex-col gap-10"><div><h2 className="font-serif text-3xl tracking-[-.04em]">Automate after the core flow works.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Webhooks notify your store when money moves. A trusted delivery signal can release funds automatically, without asking the buyer to come back and confirm.</p></div><WebhookSettingsPanel /><OracleConfigPanel /></div>}</section>
+            {tab === "automation" && <div className="flex flex-col gap-10"><div><h2 className="font-serif text-3xl tracking-[-.04em]">Automate after the core flow works.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Webhooks notify your store when money moves.</p></div><WebhookSettingsPanel /></div>}</section>
           </>
         )}
       </main>
