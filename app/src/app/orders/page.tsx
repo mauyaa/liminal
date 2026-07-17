@@ -58,7 +58,7 @@ export default function OrdersPage() {
         ) : loading ? (
           <p className="route-lede">Loading orders…</p>
         ) : orders.length === 0 ? (
-          <div className="surface p-8 sm:p-12"><h2 className="font-serif text-3xl tracking-[-.04em]">Nothing here yet.</h2><p className="mt-3 text-sm leading-6 text-muted">Every Liminal purchase appears here with its live escrow status.</p><Link href="/pay/liminal-demo-1" className="mt-6 inline-flex rounded-xl bg-foreground px-5 py-3 text-xs font-semibold text-white">Try the demo checkout ↗</Link></div>
+          <div className="surface p-8 sm:p-12"><h2 className="font-serif text-3xl tracking-[-.04em]">Nothing here yet.</h2><p className="mt-3 text-sm leading-6 text-muted">Every Liminal purchase appears here with its live escrow status.</p><Link href="/pay/liminal-demo" className="mt-6 inline-flex rounded-xl bg-foreground px-5 py-3 text-xs font-semibold text-white">Try the demo checkout ↗</Link></div>
         ) : (
           <ul className="overflow-hidden rounded-[28px] border border-border bg-surface">
             {orders.map((o) => (

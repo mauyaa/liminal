@@ -59,7 +59,7 @@ export default function Home() {
               <div><dt>If unconfirmed</dt><dd>Refundable after 24h</dd></div>
             </dl>
           </div>
-          <Link href="/pay/liminal-demo-1" className={styles.demoButton}>Review and pay $1.00 <span>↗</span></Link>
+          <Link href="/pay/liminal-demo" className={styles.demoButton}>Review and pay $1.00 <span>↗</span></Link>
           <p className={styles.demoFoot}>The demo uses test tokens on Solana devnet.</p>
         </article>
       </section>
@@ -99,7 +99,7 @@ export default function Home() {
       </section>
 
       <section className={styles.paths}>
-        <Link href="/pay/liminal-demo-1" className={styles.pathCard}><h2>Pay $1.00 through the real flow.</h2><p>Review the exact terms, connect a wallet, fund escrow and track the result.</p><b>Open demo checkout ↗</b></Link>
+        <Link href="/pay/liminal-demo" className={styles.pathCard}><h2>Pay $1.00 through the real flow.</h2><p>Review the exact terms, connect a wallet, fund escrow and track the result.</p><b>Open demo checkout ↗</b></Link>
         <Link href="/new" className={`${styles.pathCard} ${styles.pathCardDark}`}><h2>Create your payment link.</h2><p>Title, price, deadline — about 15 seconds. Share it anywhere a deal happens.</p><b>Create a link ↗</b></Link>
       </section>
     </main>
