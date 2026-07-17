@@ -6,14 +6,24 @@ use crate::{constants::*, error::LiminalError, state::{EscrowStatus, OrderState}
 #[derive(Accounts)]
 #[instruction(market_item_id: u64)]
 pub struct InitializeListing<'info> {
+    /// Pays the listing's one-time rent - the seller themselves, or a
+    /// sponsor (e.g. a relayer) covering it so a seller with zero SOL can
+    /// still create a listing. Kept distinct from `seller` so sponsoring
+    /// never requires impersonating the seller's own signature; the same
+    /// key can fill both roles for a self-funded listing (one signature
+    /// satisfies both Signer constraints).
     #[account(mut)]
+    pub payer: Signer<'info>,
+
+    /// Must still sign to authorize creating a listing under their own
+    /// identity, regardless of who pays the rent.
     pub seller: Signer<'info>,
 
     pub mint: Account<'info, Mint>,
 
     #[account(
         init,
-        payer = seller,
+        payer = payer,
         space = OrderState::SPACE,
         seeds = [ORDER_SEED, seller.key().as_ref(), market_item_id.to_le_bytes().as_ref()],
         bump

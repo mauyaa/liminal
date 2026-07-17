@@ -15,6 +15,28 @@ const DEADLINE_CHIPS = [
 
 type CreateState = "idle" | "signing" | "sending" | "done" | "error";
 
+/** Never lets a raw parse/network exception reach the UI as its own "error message." */
+async function safeJson(res: Response): Promise<Record<string, unknown>> {
+  try {
+    return await res.json();
+  } catch {
+    return {};
+  }
+}
+
+/** Translates raw JS/network exceptions into something a buyer or seller can actually act on. */
+function friendlyCreateError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  const lower = raw.toLowerCase();
+  if (lower.includes("user rejected") || lower.includes("rejected the request")) {
+    return "Cancelled — nothing was created.";
+  }
+  if (lower.includes("unexpected") || lower.includes("failed to fetch") || lower.includes("networkerror") || lower.includes("json")) {
+    return "Something went wrong creating your link. Please try again.";
+  }
+  return raw;
+}
+
 export default function NewLinkPage() {
   const { connection } = useConnection();
   const { publicKey, signTransaction } = useWallet();
@@ -55,20 +77,38 @@ export default function NewLinkPage() {
             deliveryWindowSeconds,
           }),
         });
-        const body = await res.json();
-        if (!res.ok) throw new Error(body.message ?? "Failed to create link");
+        const body = await safeJson(res);
+        if (!res.ok || typeof body.transaction !== "string") {
+          throw new Error(typeof body.message === "string" ? body.message : "Failed to create link. Please try again.");
+        }
 
         const tx = Transaction.from(Buffer.from(body.transaction, "base64"));
         const signed = await signTransaction(tx);
 
         setState("sending");
-        const sig = await connection.sendRawTransaction(signed.serialize());
-        await connection.confirmTransaction(sig, "confirmed");
+        let sig: string;
+        if (typeof body.relaySubmitUrl === "string") {
+          const relayRes = await fetch(body.relaySubmitUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              transaction: signed.serialize({ requireAllSignatures: false, verifySignatures: false }).toString("base64"),
+            }),
+          });
+          const relayBody = await safeJson(relayRes);
+          if (!relayRes.ok || typeof relayBody.signature !== "string") {
+            throw new Error(typeof relayBody.message === "string" ? relayBody.message : "Failed to submit the transaction. Please try again.");
+          }
+          sig = relayBody.signature;
+        } else {
+          sig = await connection.sendRawTransaction(signed.serialize());
+          await connection.confirmTransaction(sig, "confirmed");
+        }
 
-        setSku(body.sku);
+        setSku(body.sku as string);
         setState("done");
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to create link");
+        setError(friendlyCreateError(err));
         setState("error");
       }
     },
