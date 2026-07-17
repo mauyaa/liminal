@@ -117,6 +117,7 @@ describe("liminal escrow", () => {
     await program.methods
       .initializeListing(new BN(marketItemId), new BN(PRINCIPAL), new BN(deliveryWindowSecs))
       .accountsPartial({
+        payer: seller,
         seller,
         mint,
         orderState: order,
@@ -150,6 +151,7 @@ describe("liminal escrow", () => {
       await program.methods
         .initializeListing(new BN(marketItemId), new BN(0), new BN(60))
         .accountsPartial({
+          payer: seller,
           seller,
           mint,
           orderState: order,
@@ -160,6 +162,38 @@ describe("liminal escrow", () => {
     } catch (err) {
       assert.include(String(err), "InvalidListingParams");
     }
+  });
+
+  it("lets a sponsor pay listing rent for a seller with zero SOL", async () => {
+    const marketItemId = 101;
+    const zeroSolSeller = Keypair.generate(); // deliberately never airdropped
+    const order = PublicKey.findProgramAddressSync(
+      [ORDER_SEED, zeroSolSeller.publicKey.toBuffer(), marketItemIdBytes(marketItemId)],
+      program.programId
+    )[0];
+
+    const sponsorBalanceBefore = await provider.connection.getBalance(strangerBuyer.publicKey);
+
+    await program.methods
+      .initializeListing(new BN(marketItemId), new BN(PRINCIPAL), new BN(3600))
+      .accountsPartial({
+        payer: strangerBuyer.publicKey,
+        seller: zeroSolSeller.publicKey,
+        mint,
+        orderState: order,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([strangerBuyer, zeroSolSeller])
+      .rpc();
+
+    const orderAccount = await program.account.orderState.fetch(order);
+    assert.equal(orderAccount.seller.toBase58(), zeroSolSeller.publicKey.toBase58());
+
+    const sellerBalance = await provider.connection.getBalance(zeroSolSeller.publicKey);
+    assert.equal(sellerBalance, 0, "the seller should never have needed any SOL");
+
+    const sponsorBalanceAfter = await provider.connection.getBalance(strangerBuyer.publicKey);
+    assert.isBelow(sponsorBalanceAfter, sponsorBalanceBefore, "the sponsor should have paid the rent + fee");
   });
 
   it("runs the full funded -> settled lifecycle", async () => {

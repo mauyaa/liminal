@@ -20,6 +20,28 @@ interface Listing {
 
 const DEFAULT_MINT = "AUMiaz7S6rxn2E36tSpFyNcQwfZ5FroeesU4XMHngpNZ"; // devnet demo mint
 
+/** Never lets a raw parse/network exception reach the UI as its own "error message." */
+async function safeJson(res: Response): Promise<Record<string, unknown>> {
+  try {
+    return await res.json();
+  } catch {
+    return {};
+  }
+}
+
+/** Translates raw JS/network exceptions into something a seller can actually act on. */
+function friendlyListingError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  const lower = raw.toLowerCase();
+  if (lower.includes("user rejected") || lower.includes("rejected the request")) {
+    return "Cancelled — nothing was created.";
+  }
+  if (lower.includes("unexpected") || lower.includes("failed to fetch") || lower.includes("networkerror") || lower.includes("json")) {
+    return "Something went wrong creating your listing. Please try again.";
+  }
+  return raw;
+}
+
 export default function ListingsPanel() {
   const { connection } = useConnection();
   const { publicKey, signTransaction } = useWallet();
@@ -131,13 +153,32 @@ export default function ListingsPanel() {
             deliveryWindowSeconds,
           }),
         });
-        const body = await res.json();
-        if (!res.ok) throw new Error(body.message ?? "Failed to create listing");
+        const body = await safeJson(res);
+        if (!res.ok || typeof body.transaction !== "string") {
+          throw new Error(typeof body.message === "string" ? body.message : "Failed to create listing. Please try again.");
+        }
 
         const tx = Transaction.from(Buffer.from(body.transaction, "base64"));
         const signed = await signTransaction(tx);
-        const sig = await connection.sendRawTransaction(signed.serialize());
-        await connection.confirmTransaction(sig, "confirmed");
+
+        let sig: string;
+        if (typeof body.relaySubmitUrl === "string") {
+          const relayRes = await fetch(body.relaySubmitUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              transaction: signed.serialize({ requireAllSignatures: false, verifySignatures: false }).toString("base64"),
+            }),
+          });
+          const relayBody = await safeJson(relayRes);
+          if (!relayRes.ok || typeof relayBody.signature !== "string") {
+            throw new Error(typeof relayBody.message === "string" ? relayBody.message : "Failed to submit the transaction. Please try again.");
+          }
+          sig = relayBody.signature;
+        } else {
+          sig = await connection.sendRawTransaction(signed.serialize());
+          await connection.confirmTransaction(sig, "confirmed");
+        }
 
         setFormSuccess(
           `Listing live. Share your checkout link: ${window.location.origin}/pay/${form.sku}`
@@ -146,7 +187,7 @@ export default function ListingsPanel() {
         setCreating(false);
         refreshListings();
       } catch (err) {
-        setFormError(err instanceof Error ? err.message : "Failed to create listing");
+        setFormError(friendlyListingError(err));
       } finally {
         setSubmitting(false);
       }

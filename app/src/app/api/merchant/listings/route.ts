@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PublicKey, SystemProgram } from "@solana/web3.js";
+import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { merchants, products, orders } from "@/lib/db/schema";
+import { merchants, products, orders, sponsoredTransactions } from "@/lib/db/schema";
 import {
+  assertSimulates,
   buildUnsignedTransaction,
   getConnection,
   getProgram,
   marketItemIdToBn,
   orderStatePda,
+  SimulationError,
 } from "@/lib/solana/program";
+import { getRelayerKeypair, messageHash, SPONSORSHIP_TTL_MS } from "@/lib/solana/relayer";
+import { isRateLimited, rateLimitedResponse, requestIp } from "@/lib/rate-limit";
 
 interface CreateListingBody {
   merchantWallet: string;
@@ -139,21 +143,95 @@ export async function POST(request: NextRequest) {
 
   const orderState = orderStatePda(programId, seller, marketItemId);
 
-  const ix = await program.methods
-    .initializeListing(
-      marketItemIdToBn(marketItemId),
-      marketItemIdToBn(BigInt(body.priceUsdc)),
-      marketItemIdToBn(BigInt(body.deliveryWindowSeconds))
-    )
-    .accountsPartial({
-      seller,
-      mint,
-      orderState,
-      systemProgram: SystemProgram.programId,
-    })
-    .instruction();
+  // Creating a listing needs an on-chain account (rent), which Anchor's
+  // `init` constraint charges to a specific `payer` - distinct from
+  // `seller` precisely so a relayer can cover it. A brand-new seller
+  // shouldn't need devnet SOL before their first listing exists at all;
+  // fall back to the seller paying their own rent only if no relayer is
+  // configured. Either way, `initializeListing`'s simulation is never left
+  // uncaught - a failure here used to surface as an unhandled 500 with an
+  // empty body (the client then choked trying to JSON-parse nothing).
+  let relayer;
+  try {
+    relayer = getRelayerKeypair();
+  } catch {
+    relayer = null;
+  }
 
-  const transaction = await buildUnsignedTransaction(connection, seller, [ix]);
+  let transactionBase64: string;
+  let relaySubmitUrl: string | undefined;
+
+  if (relayer) {
+    if (
+      (await isRateLimited("sponsor-listing-ip", requestIp(request), 6, 60)) ||
+      (await isRateLimited("sponsor-listing-wallet", body.merchantWallet, 6, 60))
+    ) {
+      return rateLimitedResponse();
+    }
+
+    const ix = await program.methods
+      .initializeListing(
+        marketItemIdToBn(marketItemId),
+        marketItemIdToBn(BigInt(body.priceUsdc)),
+        marketItemIdToBn(BigInt(body.deliveryWindowSeconds))
+      )
+      .accountsPartial({
+        payer: relayer.publicKey,
+        seller,
+        mint,
+        orderState,
+        systemProgram: SystemProgram.programId,
+      })
+      .instruction();
+
+    const transaction = new Transaction().add(ix);
+    transaction.feePayer = relayer.publicKey;
+    transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    try {
+      await assertSimulates(connection, transaction);
+    } catch (err) {
+      if (err instanceof SimulationError) {
+        return NextResponse.json({ message: err.message }, { status: 502 });
+      }
+      throw err;
+    }
+
+    const hash = messageHash(transaction);
+    await db
+      .insert(sponsoredTransactions)
+      .values({ messageHash: hash, feePayer: relayer.publicKey.toBase58(), expiresAt: new Date(Date.now() + SPONSORSHIP_TTL_MS) })
+      .onConflictDoNothing();
+
+    transactionBase64 = transaction.serialize({ requireAllSignatures: false, verifySignatures: false }).toString("base64");
+    relaySubmitUrl = `${request.nextUrl.protocol}//${request.nextUrl.host}/api/relay/submit`;
+  } else {
+    const ix = await program.methods
+      .initializeListing(
+        marketItemIdToBn(marketItemId),
+        marketItemIdToBn(BigInt(body.priceUsdc)),
+        marketItemIdToBn(BigInt(body.deliveryWindowSeconds))
+      )
+      .accountsPartial({
+        payer: seller,
+        seller,
+        mint,
+        orderState,
+        systemProgram: SystemProgram.programId,
+      })
+      .instruction();
+
+    try {
+      transactionBase64 = await buildUnsignedTransaction(connection, seller, [ix]);
+    } catch (err) {
+      if (err instanceof SimulationError) {
+        return NextResponse.json(
+          { message: `${err.message} — this wallet needs a small amount of devnet SOL to create a listing.` },
+          { status: 502 }
+        );
+      }
+      throw err;
+    }
+  }
 
   await db.insert(orders).values({
     orderPda: orderState.toBase58(),
@@ -165,7 +243,8 @@ export async function POST(request: NextRequest) {
     sku,
     marketItemId: marketItemId.toString(),
     orderPda: orderState.toBase58(),
-    transaction,
+    transaction: transactionBase64,
+    ...(relaySubmitUrl ? { relaySubmitUrl } : {}),
   });
 }
 

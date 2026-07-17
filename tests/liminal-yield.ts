@@ -145,6 +145,7 @@ describe("liminal Kamino yield routing (against real cloned mainnet state)", () 
     await program.methods
       .initializeListing(new BN(marketItemId), new BN(PRINCIPAL), new BN(deliveryWindowSecs))
       .accountsPartial({
+        payer: seller.publicKey,
         seller: seller.publicKey,
         mint: USDC_MINT,
         orderState: order,

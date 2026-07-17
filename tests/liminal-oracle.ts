@@ -74,7 +74,7 @@ describe("liminal oracle settlement (real Ed25519 attestation)", () => {
     const order = orderPda(marketItemId);
     await program.methods
       .initializeListing(new BN(marketItemId), new BN(PRINCIPAL), new BN(3600))
-      .accountsPartial({ seller, mint, orderState: order, systemProgram: SystemProgram.programId })
+      .accountsPartial({ payer: seller, seller, mint, orderState: order, systemProgram: SystemProgram.programId })
       .rpc();
     await program.methods
       .fundOrder(new BN(marketItemId))

@@ -608,8 +608,24 @@ export type Liminal = {
       ],
       "accounts": [
         {
-          "name": "seller",
+          "name": "payer",
+          "docs": [
+            "Pays the listing's one-time rent - the seller themselves, or a",
+            "sponsor (e.g. a relayer) covering it so a seller with zero SOL can",
+            "still create a listing. Kept distinct from `seller` so sponsoring",
+            "never requires impersonating the seller's own signature; the same",
+            "key can fill both roles for a self-funded listing (one signature",
+            "satisfies both Signer constraints)."
+          ],
           "writable": true,
+          "signer": true
+        },
+        {
+          "name": "seller",
+          "docs": [
+            "Must still sign to authorize creating a listing under their own",
+            "identity, regardless of who pays the rent."
+          ],
           "signer": true
         },
         {
