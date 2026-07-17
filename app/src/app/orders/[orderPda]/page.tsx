@@ -22,6 +22,13 @@ interface OrderDetail {
   mint: string;
   merchantWallet: string;
   storeName: string;
+  dispute: {
+    resolvedSellerBps: number | null;
+    verdictReasoning: string | null;
+    verdictHash: string | null;
+    resolvedTxSignature: string | null;
+    resolvedAt: string | null;
+  } | null;
   onChain: {
     status: string;
     buyer: string | null;
@@ -31,6 +38,12 @@ interface OrderDetail {
     challengeDeadline: number;
     refundableNow: boolean;
   } | null;
+}
+
+interface EvidenceItem {
+  submittedBy: "buyer" | "seller";
+  content: string;
+  createdAt: string;
 }
 
 type ActionState = "idle" | "building" | "signing" | "sending" | "done" | "error";
@@ -51,10 +64,10 @@ function formatCountdown(deadlineSeconds: number, nowMs: number): string {
 
 /** The exact on-chain lifecycle, expressed in buyer language. */
 function Timeline({ status }: { status: string }) {
-  const finalLabel = status === "REFUNDED" ? "Refunded" : "Complete";
+  const finalLabel = status === "REFUNDED" ? "Refunded" : status === "RESOLVED" ? "Resolved" : "Complete";
   const nodes = ["Payment protected", "Await delivery", finalLabel];
   const reached =
-    status === "SETTLED" || status === "REFUNDED"
+    status === "SETTLED" || status === "REFUNDED" || status === "RESOLVED"
       ? 2
       : status === "FUNDED" || status === "DELIVERY_SIGNALED" || status === "DISPUTED"
         ? 1
@@ -107,6 +120,10 @@ export default function OrderPage() {
   const [deliveryNote, setDeliveryNote] = useState("");
   const [signalState, setSignalState] = useState<SignalState>("idle");
   const [signalError, setSignalError] = useState<string | null>(null);
+  const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([]);
+  const [evidenceText, setEvidenceText] = useState("");
+  const [evidenceState, setEvidenceState] = useState<SignalState>("idle");
+  const [evidenceError, setEvidenceError] = useState<string | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60_000);
@@ -118,6 +135,12 @@ export default function OrderPage() {
     const body = await res.json();
     if (!res.ok) throw new Error(body.message ?? "Failed to load order");
     setOrder(body);
+
+    const evidenceRes = await fetch(`/api/orders/${orderPda}/evidence`);
+    if (evidenceRes.ok) {
+      const evidenceBody = await evidenceRes.json();
+      setEvidenceItems(evidenceBody.evidence ?? []);
+    }
   }, [orderPda]);
 
   useEffect(() => {
@@ -193,6 +216,33 @@ export default function OrderPage() {
       setSignalState("error");
     }
   }, [publicKey, signMessage, orderPda, deliveryNote, refresh]);
+
+  const submitEvidence = useCallback(async () => {
+    if (!publicKey || !signMessage || !evidenceText.trim()) return;
+    setEvidenceError(null);
+    setEvidenceState("signing");
+    try {
+      const message = new TextEncoder().encode(`submit-evidence:${orderPda}`);
+      const signatureBytes = await signMessage(message);
+      const signature = bs58.encode(signatureBytes);
+
+      setEvidenceState("sending");
+      const res = await fetch(`/api/orders/${orderPda}/evidence`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet: publicKey.toBase58(), content: evidenceText.trim(), signature }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.message ?? "Failed to submit evidence");
+
+      setEvidenceState("idle");
+      setEvidenceText("");
+      await refresh();
+    } catch (err) {
+      setEvidenceError(err instanceof Error ? err.message : "Failed to submit evidence");
+      setEvidenceState("error");
+    }
+  }, [publicKey, signMessage, orderPda, evidenceText, refresh]);
 
   const status = order?.onChain?.status ?? order?.escrowStatus ?? "";
   const isBuyer = !!publicKey && !!order?.onChain?.buyer && publicKey.toBase58() === order.onChain.buyer;
@@ -275,9 +325,38 @@ export default function OrderPage() {
                 <div className="flex flex-col gap-1">
                   <p className="font-serif text-3xl tracking-[-.04em]">Under review.</p>
                   <p className="mt-4 max-w-xl text-[13px] leading-6 text-muted">
-                    You flagged a problem with this delivery. Resolving disputes isn&apos;t
-                    automated yet — this is a manual step for now, not an instant verdict.
+                    Resolving disputes isn&apos;t automated yet — a person reviews what both sides
+                    say and decides. State your case below; there&apos;s no deadline to do it, but
+                    the sooner both sides weigh in, the sooner this resolves.
                   </p>
+                  {evidenceItems.length > 0 && (
+                    <div className="mt-4 flex max-w-xl flex-col gap-2">
+                      {evidenceItems.map((item, i) => (
+                        <div key={i} className="rounded-xl border border-border bg-surface p-3 text-[12px] leading-5">
+                          <span className="font-semibold">{item.submittedBy === "buyer" ? "Buyer" : "Seller"}:</span>{" "}
+                          <span className="whitespace-pre-wrap text-muted">{item.content}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {status === "RESOLVED" && order.dispute?.resolvedSellerBps != null && (
+                <div className="flex flex-col gap-1">
+                  <p className="font-serif text-3xl tracking-[-.04em]">Resolved.</p>
+                  <p className="mt-4 max-w-xl text-[13px] leading-6 text-muted">
+                    {order.dispute.resolvedSellerBps === 10000
+                      ? "The seller was paid in full."
+                      : order.dispute.resolvedSellerBps === 0
+                        ? "The buyer was refunded in full."
+                        : `Split ${(order.dispute.resolvedSellerBps / 100).toFixed(0)}% to the seller, ${(100 - order.dispute.resolvedSellerBps / 100).toFixed(0)}% back to the buyer.`}
+                  </p>
+                  {order.dispute.verdictReasoning && (
+                    <p className="mt-3 max-w-xl whitespace-pre-wrap rounded-xl border border-border bg-surface p-4 text-[12px] leading-5 text-muted">
+                      {order.dispute.verdictReasoning}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -368,6 +447,33 @@ export default function OrderPage() {
                 </div>
               )}
 
+              {status === "DISPUTED" && (isBuyer || isSeller) && (
+                <div className="flex flex-col gap-2">
+                  <textarea
+                    placeholder="State your side - what happened, and why"
+                    value={evidenceText}
+                    onChange={(e) => setEvidenceText(e.target.value)}
+                    rows={4}
+                    className="w-full rounded-xl border border-border bg-surface p-3 text-sm outline-none focus:border-foreground/40"
+                  />
+                  <button
+                    onClick={submitEvidence}
+                    disabled={!evidenceText.trim() || evidenceState === "signing" || evidenceState === "sending"}
+                    className="inline-flex h-11 items-center justify-center rounded-xl bg-foreground px-6 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+                  >
+                    {evidenceState === "signing"
+                      ? "Confirm in your wallet…"
+                      : evidenceState === "sending"
+                        ? "Submitting…"
+                        : "Submit statement"}
+                  </button>
+                  <p className="text-[12px] leading-4 text-muted">
+                    Free signature, no transaction fee - just proves this came from your wallet.
+                  </p>
+                  {evidenceError && <p className="text-sm text-red-500">{evidenceError}</p>}
+                </div>
+              )}
+
               {status === "FUNDED" && publicKey && refundable && (
                 <button
                   onClick={() => runLifecycleAction("refund")}
@@ -405,7 +511,7 @@ export default function OrderPage() {
                   rel="noopener noreferrer"
                   className="underline"
                 >
-                  {status === "REFUNDED" ? "Refund transaction" : "Settlement transaction"}
+                  {status === "REFUNDED" ? "Refund transaction" : status === "RESOLVED" ? "Verdict transaction" : "Settlement transaction"}
                 </a>
               )}
               <span className="break-all font-mono text-[11px]">{order.orderPda}</span>

@@ -25,6 +25,10 @@ pub const DELIVERY_ATTESTATION_TAG: &[u8] = b"DELIVERED";
 /// same OracleConfig key. See `signal_delivery`.
 pub const DELIVERY_SIGNAL_TAG: &[u8] = b"LIMINAL:DELIVERY:v1";
 
+/// Message tag for dispute-verdict attestations - see `resolve_dispute`.
+/// Distinct from the other two tags for the same replay-prevention reason.
+pub const RESOLVE_DISPUTE_TAG: &[u8] = b"LIMINAL:RESOLVE:v1";
+
 /// Kamino Lend (klend) mainnet program. There is no meaningful Kamino
 /// deployment on devnet, so vaults with `yield_enabled = true` only make
 /// sense against a mainnet deployment of this program.

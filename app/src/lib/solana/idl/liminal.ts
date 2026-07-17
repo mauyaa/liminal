@@ -1260,6 +1260,169 @@ export type Liminal = {
       ]
     },
     {
+      "name": "resolveDispute",
+      "discriminator": [
+        231,
+        6,
+        202,
+        6,
+        96,
+        103,
+        12,
+        230
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "docs": [
+            "Permissionless: anyone holding a valid verdict attestation may",
+            "trigger it. Only pays the transaction fee."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "seller",
+          "relations": [
+            "orderState"
+          ]
+        },
+        {
+          "name": "orderState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "arg",
+                "path": "marketItemId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "oracleConfig",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "unifiedVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  110,
+                  97,
+                  108,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vaultTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "sellerTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "buyerTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "instructionsSysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "marketItemId",
+          "type": "u64"
+        },
+        {
+          "name": "sellerBps",
+          "type": "u16"
+        },
+        {
+          "name": "verdictHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "settleOrder",
       "discriminator": [
         80,
@@ -1853,6 +2016,21 @@ export type Liminal = {
       ]
     }
   ],
+  "events": [
+    {
+      "name": "disputeResolved",
+      "discriminator": [
+        121,
+        64,
+        249,
+        153,
+        139,
+        128,
+        236,
+        187
+      ]
+    }
+  ],
   "errors": [
     {
       "code": 6000,
@@ -1903,9 +2081,45 @@ export type Liminal = {
       "code": 6009,
       "name": "challengeWindowNotElapsed",
       "msg": "The challenge window has not elapsed yet."
+    },
+    {
+      "code": 6010,
+      "name": "invalidSplitBps",
+      "msg": "seller_bps must be between 0 and 10000 inclusive."
     }
   ],
   "types": [
+    {
+      "name": "disputeResolved",
+      "docs": [
+        "Emitted on every resolution - the on-chain audit trail. `verdict_hash` is",
+        "a SHA-256 (computed off-chain) of the full published verdict reasoning,",
+        "so the ruling is tamper-evident without storing the reasoning text",
+        "itself in account state."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "order",
+            "type": "pubkey"
+          },
+          {
+            "name": "sellerBps",
+            "type": "u16"
+          },
+          {
+            "name": "verdictHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
     {
       "name": "escrowStatus",
       "type": {
@@ -1928,6 +2142,9 @@ export type Liminal = {
           },
           {
             "name": "disputed"
+          },
+          {
+            "name": "resolved"
           }
         ]
       }

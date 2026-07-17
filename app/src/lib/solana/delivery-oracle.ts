@@ -3,6 +3,8 @@ import nacl from "tweetnacl";
 
 /** Must match `DELIVERY_SIGNAL_TAG` in programs/liminal/src/constants.rs exactly. */
 const DELIVERY_SIGNAL_TAG = Buffer.from("LIMINAL:DELIVERY:v1");
+/** Must match `RESOLVE_DISPUTE_TAG` in programs/liminal/src/constants.rs exactly. */
+const RESOLVE_DISPUTE_TAG = Buffer.from("LIMINAL:RESOLVE:v1");
 
 let cachedOracle: Keypair | null = null;
 
@@ -44,6 +46,34 @@ export function buildSignalDeliveryAttestation(
   const windowBytes = Buffer.alloc(8);
   windowBytes.writeBigInt64LE(BigInt(challengeWindowSecs));
   const message = Buffer.concat([orderPda.toBuffer(), windowBytes, DELIVERY_SIGNAL_TAG]);
+  const signature = nacl.sign.detached(message, oracle.secretKey);
+
+  return Ed25519Program.createInstructionWithPublicKey({
+    publicKey: oracle.publicKey.toBytes(),
+    message,
+    signature,
+  });
+}
+
+/**
+ * Builds the native Ed25519SigVerify instruction `resolve_dispute` expects
+ * immediately preceding it. The signed message is `orderPda || sellerBps (u16
+ * LE) || verdictHash (32 bytes) || RESOLVE_DISPUTE_TAG` - binding the split
+ * and the verdict hash into the signature the same way the window is bound
+ * into `signal_delivery`'s, so neither can be swapped out by whoever submits
+ * the transaction. Uses the same oracle key as delivery signaling - see this
+ * file's top-level doc comment on `getDeliveryOracleKeypair`.
+ */
+export function buildResolveDisputeAttestation(
+  orderPda: PublicKey,
+  sellerBps: number,
+  verdictHash: Buffer
+): TransactionInstruction {
+  if (verdictHash.length !== 32) throw new Error("verdictHash must be exactly 32 bytes");
+  const oracle = getDeliveryOracleKeypair();
+  const bpsBytes = Buffer.alloc(2);
+  bpsBytes.writeUInt16LE(sellerBps);
+  const message = Buffer.concat([orderPda.toBuffer(), bpsBytes, verdictHash, RESOLVE_DISPUTE_TAG]);
   const signature = nacl.sign.detached(message, oracle.secretKey);
 
   return Ed25519Program.createInstructionWithPublicKey({

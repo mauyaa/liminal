@@ -1254,6 +1254,169 @@
       ]
     },
     {
+      "name": "resolve_dispute",
+      "discriminator": [
+        231,
+        6,
+        202,
+        6,
+        96,
+        103,
+        12,
+        230
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "docs": [
+            "Permissionless: anyone holding a valid verdict attestation may",
+            "trigger it. Only pays the transaction fee."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "seller",
+          "relations": [
+            "order_state"
+          ]
+        },
+        {
+          "name": "order_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "arg",
+                "path": "market_item_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "oracle_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "unified_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  110,
+                  97,
+                  108,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_token_account",
+          "writable": true
+        },
+        {
+          "name": "seller_token_account",
+          "writable": true
+        },
+        {
+          "name": "buyer_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "market_item_id",
+          "type": "u64"
+        },
+        {
+          "name": "seller_bps",
+          "type": "u16"
+        },
+        {
+          "name": "verdict_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "settle_order",
       "discriminator": [
         80,
@@ -1847,6 +2010,21 @@
       ]
     }
   ],
+  "events": [
+    {
+      "name": "DisputeResolved",
+      "discriminator": [
+        121,
+        64,
+        249,
+        153,
+        139,
+        128,
+        236,
+        187
+      ]
+    }
+  ],
   "errors": [
     {
       "code": 6000,
@@ -1897,9 +2075,45 @@
       "code": 6009,
       "name": "ChallengeWindowNotElapsed",
       "msg": "The challenge window has not elapsed yet."
+    },
+    {
+      "code": 6010,
+      "name": "InvalidSplitBps",
+      "msg": "seller_bps must be between 0 and 10000 inclusive."
     }
   ],
   "types": [
+    {
+      "name": "DisputeResolved",
+      "docs": [
+        "Emitted on every resolution - the on-chain audit trail. `verdict_hash` is",
+        "a SHA-256 (computed off-chain) of the full published verdict reasoning,",
+        "so the ruling is tamper-evident without storing the reasoning text",
+        "itself in account state."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "order",
+            "type": "pubkey"
+          },
+          {
+            "name": "seller_bps",
+            "type": "u16"
+          },
+          {
+            "name": "verdict_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
     {
       "name": "EscrowStatus",
       "type": {
@@ -1922,6 +2136,9 @@
           },
           {
             "name": "Disputed"
+          },
+          {
+            "name": "Resolved"
           }
         ]
       }

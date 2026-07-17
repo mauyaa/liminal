@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { PublicKey } from "@solana/web3.js";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { orders, products, merchants, ESCROW_STATUSES, type EscrowStatus } from "@/lib/db/schema";
+import { orders, products, merchants, disputes, ESCROW_STATUSES, type EscrowStatus } from "@/lib/db/schema";
 import { escrowStatusFromAccount, getConnection, getProgram } from "@/lib/solana/program";
 import { deliverOrderWebhook } from "@/lib/webhooks";
 
@@ -107,6 +107,15 @@ export async function syncOrder(orderPda: string): Promise<{ escrowStatus: Escro
       priceUsdc: orderRow.priceUsdc,
       mint: orderRow.mint,
     });
+  }
+
+  // A dispute is opened by the buyer's own wallet-signed `challenge_order`
+  // tx, not a server-signed action - so unlike signal_delivery (which
+  // writes its own row at the point of action) this is the one place that
+  // reliably observes the transition into DISPUTED, whether it came from a
+  // client-triggered sync or the autonomous poll.
+  if (changed && escrowStatus === "DISPUTED") {
+    await db.insert(disputes).values({ orderPda }).onConflictDoNothing();
   }
 
   return { escrowStatus, changed };
