@@ -9,6 +9,7 @@ export const ESCROW_STATUSES = [
   "REFUNDED",
   "DELIVERY_SIGNALED",
   "DISPUTED",
+  "RESOLVED",
 ] as const;
 export type EscrowStatus = (typeof ESCROW_STATUSES)[number];
 
@@ -210,6 +211,48 @@ export const notifications = sqliteTable("notifications", {
     .notNull()
     .$defaultFn(() => new Date()),
 });
+
+/**
+ * Freeform statement either party attaches to a disputed order - text or a
+ * link, no file storage (mirrors `orders.deliveryNote`'s same choice).
+ * Attribution is proven at submit time via a wallet-signed message, not
+ * stored here - this table only needs to know who the API already verified
+ * the submitter to be.
+ */
+export const evidence = sqliteTable("evidence", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  orderPda: text("order_pda").notNull(),
+  submittedBy: text("submitted_by", { enum: ["buyer", "seller"] }).notNull(),
+  content: text("content").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+/**
+ * One row per dispute, created when `syncOrder` observes a transition into
+ * DISPUTED and filled in once the operator resolves it via
+ * `/api/admin/disputes/[orderPda]/resolve`. `verdictHash` is the sha256 of
+ * `verdictReasoning` that gets bound into the on-chain attestation - keeping
+ * both here means the full reasoning is recoverable and independently
+ * re-hashable to check it matches what was actually attested to.
+ */
+export const disputes = sqliteTable(
+  "disputes",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    orderPda: text("order_pda").notNull(),
+    openedAt: integer("opened_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    resolvedSellerBps: integer("resolved_seller_bps"),
+    verdictReasoning: text("verdict_reasoning"),
+    verdictHash: text("verdict_hash"),
+    resolvedTxSignature: text("resolved_tx_signature"),
+    resolvedAt: integer("resolved_at", { mode: "timestamp" }),
+  },
+  (table) => [uniqueIndex("disputes_order_pda_idx").on(table.orderPda)]
+);
 
 export const merchantsRelations = relations(merchants, ({ many }) => ({
   products: many(products),

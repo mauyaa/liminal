@@ -80,6 +80,12 @@ pub enum EscrowStatus {
     // (0-3) never change for already-created accounts.
     DeliverySignaled,
     Disputed,
+    // Terminal state for a dispute resolved via `resolve_dispute` - kept
+    // distinct from Settled/Refunded so the timeline can honestly say "this
+    // was resolved by a dispute" rather than conflating it with an
+    // uncontested confirm/refund. A plain unit variant, so appending it
+    // costs nothing - no OrderState::SPACE change, no account breakage.
+    Resolved,
 }
 
 /// Per-mint config naming the pubkey trusted to sign delivery attestations

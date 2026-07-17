@@ -22,4 +22,6 @@ pub enum LiminalError {
     ChallengeWindowExpired,
     #[msg("The challenge window has not elapsed yet.")]
     ChallengeWindowNotElapsed,
+    #[msg("seller_bps must be between 0 and 10000 inclusive.")]
+    InvalidSplitBps,
 }

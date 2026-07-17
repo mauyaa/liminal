@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { PublicKey } from "@solana/web3.js";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { orders, products, merchants } from "@/lib/db/schema";
+import { orders, products, merchants, disputes } from "@/lib/db/schema";
 import { escrowStatusFromAccount, getConnection, getProgram } from "@/lib/solana/program";
 
 export const runtime = "nodejs";
@@ -54,11 +54,24 @@ export async function GET(
     return NextResponse.json({ message: `no order found for "${orderPdaParam}"` }, { status: 404 });
   }
 
+  const dispute = await db
+    .select({
+      resolvedSellerBps: disputes.resolvedSellerBps,
+      verdictReasoning: disputes.verdictReasoning,
+      verdictHash: disputes.verdictHash,
+      resolvedTxSignature: disputes.resolvedTxSignature,
+      resolvedAt: disputes.resolvedAt,
+    })
+    .from(disputes)
+    .where(eq(disputes.orderPda, orderPda.toBase58()))
+    .then((rows) => rows[0] ?? null);
+
   const program = getProgram(getConnection());
   const onChain = await program.account.orderState.fetchNullable(orderPda);
 
   return NextResponse.json({
     ...row,
+    dispute,
     onChain: onChain
       ? {
           status: escrowStatusFromAccount(onChain.status as Record<string, unknown>),

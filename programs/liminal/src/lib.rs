@@ -118,4 +118,13 @@ pub mod liminal {
     pub fn finalize_delivery(ctx: Context<FinalizeDelivery>, market_item_id: u64) -> Result<()> {
         crate::instructions::finalize_delivery::handle_finalize_delivery(ctx, market_item_id)
     }
+
+    pub fn resolve_dispute(
+        ctx: Context<ResolveDispute>,
+        market_item_id: u64,
+        seller_bps: u16,
+        verdict_hash: [u8; 32],
+    ) -> Result<()> {
+        crate::instructions::resolve_dispute::handle_resolve_dispute(ctx, market_item_id, seller_bps, verdict_hash)
+    }
 }
