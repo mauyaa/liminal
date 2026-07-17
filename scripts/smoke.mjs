@@ -5,7 +5,7 @@
  * target with BASE_URL. Exits non-zero on any failure.
  */
 const BASE = process.env.BASE_URL ?? "https://app-eight-lovat-94.vercel.app";
-const DEMO_ORDER = "4CKxnrB8PmQFthbegauF7TgpXrcqYa6HhNK7fVbdFyVo";
+const DEMO_ORDER = "BHmUPeVvfUydDzxTLNfRs6EXbkJ5AYwhHeYu9vFagwEZ";
 
 let failures = 0;
 const check = (label, cond, extra = "") => {
@@ -42,19 +42,19 @@ const journeys = [
   },
   // Buyer journey
   async () => {
-    const r = await get("/pay/liminal-demo-1");
+    const r = await get("/pay/liminal-demo");
     check("checkout page renders", r.status === 200);
   },
   async () => {
-    const r = await get("/buy/liminal-demo-1");
-    check("old /buy link redirects to /pay", r.status >= 300 && r.status < 400 && r.location.includes("/pay/liminal-demo-1"));
+    const r = await get("/buy/liminal-demo");
+    check("old /buy link redirects to /pay", r.status >= 300 && r.status < 400 && r.location.includes("/pay/liminal-demo"));
   },
   async () => {
-    const r = await get("/api/actions/buy/liminal-demo-1");
+    const r = await get("/api/actions/buy/liminal-demo");
     check("checkout metadata has price + delivery window", r.status === 200 && r.text.includes('"deliveryWindowSeconds"'));
   },
   async () => {
-    const r = await postJson("/api/actions/buy/liminal-demo-1", { account: "not-a-pubkey" });
+    const r = await postJson("/api/actions/buy/liminal-demo", { account: "not-a-pubkey" });
     check("checkout rejects invalid buyer", r.status === 400);
   },
   async () => {
