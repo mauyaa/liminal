@@ -20,7 +20,7 @@ const journey = [
 const faq = [
   ["What if the buyer never confirms?", "The payment auto-refunds to them after the delivery deadline if you never marked it delivered, and auto-releases to you if you did — nobody has to remember to act."],
   ["What if I never deliver?", "The buyer's money was never sent to you — it sits in the escrow program. Past your delivery deadline, they can refund it any time, or it's refunded to them automatically."],
-  ["Who decides if something goes wrong?", "Today: the buyer confirms receipt, or the deadline decides it automatically. A dispute-resolution step for contested deliveries is next — it isn't live yet, and we won't pretend it is."],
+  ["Who decides if something goes wrong?", "Most orders never need a person: the buyer confirms, or the deadline decides it automatically. If a buyer flags a delivery, it goes to manual review — someone reads both sides and issues a split, published with the reasoning. No AI verdicts yet, and we won't claim otherwise."],
   ["What does it cost?", "Nothing right now. Liminal charges $0.00 on every escrow — it's free while we build out the product."],
   ["Why crypto?", "Because a buyer who already has a wallet can pay a stranger in seconds, with the money provably locked instead of just promised."],
 ];

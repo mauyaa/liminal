@@ -9,15 +9,32 @@ const BASE = "https://app-eight-lovat-94.vercel.app";
 
 const GROUPS: { title: string; endpoints: { method: string; path: string; what: string }[] }[] = [
   {
-    title: "Protected payments",
+    title: "Pay links",
     endpoints: [
-      { method: "POST", path: "/api/merchant/listings", what: "Create a listing → unsigned initialize_listing tx" },
+      { method: "POST", path: "/api/merchant/listings", what: "Create a listing → unsigned initialize_listing tx (title/price/deadline is enough; sku/image/store name are optional)" },
       { method: "GET/POST", path: "/api/actions/buy/{sku}", what: "Checkout metadata / build the funding tx (add ?sponsored=true for gasless)" },
-      { method: "POST", path: "/api/orders/{orderPda}/settle", what: "Buyer confirms receipt → release funds" },
-      { method: "POST", path: "/api/orders/{orderPda}/refund", what: "Permissionless refund once the deadline passes" },
-      { method: "GET", path: "/api/orders/{orderPda}", what: "Order detail merged with live on-chain state" },
+      { method: "GET", path: "/api/orders/{orderPda}", what: "Order detail merged with live on-chain state, including any dispute verdict" },
       { method: "GET", path: "/api/orders?buyerWallet= | ?merchantWallet=", what: "Order history for either side" },
       { method: "POST", path: "/api/orders/sync", what: "Sync DB to chain after a client-submitted tx; fires webhooks" },
+    ],
+  },
+  {
+    title: "Delivery & release",
+    endpoints: [
+      { method: "POST", path: "/api/orders/{orderPda}/settle", what: "Buyer confirms receipt → release funds (before any delivery signal)" },
+      { method: "POST", path: "/api/orders/{orderPda}/refund", what: "Permissionless refund once the delivery deadline passes" },
+      { method: "POST", path: "/api/orders/{orderPda}/signal-delivery", what: "Seller marks delivered (wallet-signed message, no gas) → opens a 48h challenge window" },
+      { method: "POST", path: "/api/orders/{orderPda}/confirm", what: "Buyer releases early once delivery is signaled" },
+      { method: "POST", path: "/api/orders/{orderPda}/challenge", what: "Buyer disputes a signaled delivery before the window closes" },
+      { method: "GET", path: "/api/deliveries/poll", what: "Autonomously finalizes unchallenged signaled deliveries (CRON_SECRET-gated)" },
+    ],
+  },
+  {
+    title: "Disputes",
+    endpoints: [
+      { method: "GET/POST", path: "/api/orders/{orderPda}/evidence", what: "Either party attaches a statement (wallet-signed, no gas)" },
+      { method: "GET", path: "/api/admin/disputes", what: "Open disputes with evidence (ADMIN_SECRET-gated)" },
+      { method: "POST", path: "/api/admin/disputes/{orderPda}/resolve", what: "Operator issues a split verdict → oracle-attested resolve_dispute on-chain (ADMIN_SECRET-gated)" },
     ],
   },
   {
@@ -29,20 +46,11 @@ const GROUPS: { title: string; endpoints: { method: string; path: string; what: 
     ],
   },
   {
-    title: "Subscriptions",
-    endpoints: [
-      { method: "POST/GET", path: "/api/merchant/plans", what: "Create / list recurring plans" },
-      { method: "GET/POST", path: "/api/actions/subscribe/{planId}", what: "Two-step subscribe flow (requiresFollowUp)" },
-      { method: "POST", path: "/api/merchant/plans/{planId}/collect", what: "Pull one period's payment" },
-      { method: "POST", path: "/api/subscriptions/{planId}/cancel", what: "Cancel (effective end of paid period)" },
-    ],
-  },
-  {
     title: "Automation & operations",
     endpoints: [
       { method: "POST/GET", path: "/api/merchant/webhook", what: "Set / read the signed-webhook endpoint" },
-      { method: "GET", path: "/api/merchant/stats", what: "Volume, order counts, subscribers" },
-      { method: "GET", path: "/api/{webhooks|subscriptions|refunds}/poll", what: "Autonomous engines (CRON_SECRET-gated)" },
+      { method: "GET", path: "/api/merchant/stats", what: "Volume, order counts, listings" },
+      { method: "GET", path: "/api/{webhooks|refunds|deliveries}/poll", what: "Autonomous engines (CRON_SECRET-gated)" },
       { method: "GET", path: "/api/health", what: "Deployment health + schema/migration status" },
     ],
   },
@@ -77,24 +85,23 @@ export default function DocsPage() {
           </h2>
           <pre className="overflow-x-auto rounded-2xl bg-foreground p-5 font-mono text-[11px] leading-5 text-white">
 {`# 1 · Create a listing (returns an unsigned tx for the merchant wallet)
+#     - title, priceUsdc, and deliveryWindowSeconds are the only required fields
 curl -X POST ${BASE}/api/merchant/listings \\
   -H "Content-Type: application/json" \\
-  -d '{"merchantWallet":"<wallet>","storeName":"Aurora Prints",
-       "sku":"sticker-pack-01","title":"Sticker pack",
-       "imageUrl":"https://…/p.png","priceUsdc":12500000,
-       "mint":"AUMiaz7S6rxn2E36tSpFyNcQwfZ5FroeesU4XMHngpNZ",
-       "deliveryWindowSeconds":86400}'
+  -d '{"merchantWallet":"<wallet>","title":"Sticker pack",
+       "priceUsdc":12500000,"deliveryWindowSeconds":86400}'
 
-# 2 · Buyer pays — share the link, the embed, or build the tx yourself
-open ${BASE}/buy/sticker-pack-01
+# 2 · Buyer pays — share the returned link, or embed it with a script tag
+open ${BASE}/pay/<sku>
 
-# 3 · Settlement — buyer confirms, your platform verifies, or the
-#     deadline passes and the refund engine returns the funds
+# 3 · Release — buyer confirms, the seller signals delivery (opening a
+#     48h challenge window), or the deadline passes and funds return to
+#     the buyer automatically
 curl -X POST ${BASE}/api/orders/<orderPda>/settle`}
           </pre>
           <p className="text-[12px] text-muted">
-            Try it with no wallet at all in the <Link href="/sandbox" className="underline">sandbox</Link>, or against
-            the live devnet <Link href="/buy/liminal-demo-1" className="underline">demo checkout</Link>.
+            Try it against the live devnet <Link href="/pay/liminal-demo" className="underline">demo checkout</Link>,
+            or create your own in <Link href="/new" className="underline">the link creator</Link>.
           </p>
         </section>
 
@@ -121,8 +128,11 @@ curl -X POST ${BASE}/api/orders/<orderPda>/settle`}
           <p className="text-[13px] leading-6 text-muted">
             Register a URL once via <code className="font-mono text-[12px]">POST /api/merchant/webhook</code> and
             receive signed JSON on every state change (<code className="font-mono text-[12px]">order.funded</code>,{" "}
+            <code className="font-mono text-[12px]">order.delivery_signaled</code>,{" "}
             <code className="font-mono text-[12px]">order.settled</code>,{" "}
-            <code className="font-mono text-[12px]">order.refunded</code>). Verify the{" "}
+            <code className="font-mono text-[12px]">order.refunded</code>,{" "}
+            <code className="font-mono text-[12px]">order.disputed</code>,{" "}
+            <code className="font-mono text-[12px]">order.resolved</code>). Verify the{" "}
             <code className="font-mono text-[12px]">X-Liminal-Signature</code> header — hex HMAC-SHA256 of the raw
             body with your webhook secret — before trusting a payload. Delivery retries with backoff, and the
             autonomous pollers guarantee events fire even when no client calls sync.

@@ -10,7 +10,7 @@ interface Stats {
 }
 
 interface DashboardHomeProps {
-  onNavigate: (tab: "listings" | "orders" | "subscriptions" | "automation") => void;
+  onNavigate: (tab: "listings" | "orders" | "automation") => void;
 }
 
 export default function DashboardHome({ onNavigate }: DashboardHomeProps) {

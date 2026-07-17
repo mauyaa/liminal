@@ -37,7 +37,7 @@
   }
 
   var origin = new URL(script.src).origin;
-  var checkoutUrl = origin + "/buy/" + encodeURIComponent(sku);
+  var checkoutUrl = origin + "/pay/" + encodeURIComponent(sku);
   var customLabel = script.getAttribute("data-label");
   var theme = script.getAttribute("data-theme") === "light" ? "light" : "dark";
 
