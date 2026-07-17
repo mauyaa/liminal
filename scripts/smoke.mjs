@@ -15,8 +15,8 @@ const check = (label, cond, extra = "") => {
 
 async function get(path) {
   const res = await fetch(BASE + path, { redirect: "manual" });
-  const text = await res.text();
-  return { status: res.status, text };
+  const text = await res.text().catch(() => "");
+  return { status: res.status, text, location: res.headers.get("location") ?? "" };
 }
 
 async function postJson(path, body) {
@@ -32,18 +32,22 @@ const journeys = [
   // Marketing & product pages
   async () => {
     const r = await get("/");
-    check("landing renders the actual escrow product", r.status === 200 && r.text.includes("Checkout that waits for delivery") && r.text.includes("Open the $1 demo checkout"));
+    check("landing renders the actual escrow product", r.status === 200 && r.text.includes("Get paid by strangers") && r.text.includes("Create your payment link"));
   },
   async () => {
-    for (const p of ["/dashboard", "/sandbox", "/pricing", "/docs", "/security", "/embed", "/orders"]) {
+    for (const p of ["/dashboard", "/new", "/sandbox", "/pricing", "/docs", "/security", "/embed", "/orders"]) {
       const r = await get(p);
       check(`${p} renders`, r.status === 200);
     }
   },
   // Buyer journey
   async () => {
-    const r = await get("/buy/liminal-demo-1");
+    const r = await get("/pay/liminal-demo-1");
     check("checkout page renders", r.status === 200);
+  },
+  async () => {
+    const r = await get("/buy/liminal-demo-1");
+    check("old /buy link redirects to /pay", r.status >= 300 && r.status < 400 && r.location.includes("/pay/liminal-demo-1"));
   },
   async () => {
     const r = await get("/api/actions/buy/liminal-demo-1");

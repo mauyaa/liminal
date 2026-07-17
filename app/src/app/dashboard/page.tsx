@@ -56,7 +56,7 @@ export default function DashboardPage() {
             {tab === "listings" && <ListingsPanel />}
             {tab === "orders" && <OrdersPanel />}
             {tab === "subscriptions" && <SubscriptionsPanel />}
-            {tab === "automation" && <div className="flex flex-col gap-10"><div><h2 className="font-serif text-3xl tracking-[-.04em]">Automate after the core flow works.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Webhooks notify your store when money moves. Delivery attestations can release funds without asking the buyer to return.</p></div><WebhookSettingsPanel /><OracleConfigPanel /></div>}</section>
+            {tab === "automation" && <div className="flex flex-col gap-10"><div><h2 className="font-serif text-3xl tracking-[-.04em]">Automate after the core flow works.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted">Webhooks notify your store when money moves. A trusted delivery signal can release funds automatically, without asking the buyer to come back and confirm.</p></div><WebhookSettingsPanel /><OracleConfigPanel /></div>}</section>
           </>
         )}
       </main>

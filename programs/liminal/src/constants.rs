@@ -19,6 +19,12 @@ pub const ORACLE_CONFIG_SEED: &[u8] = b"oracle-config";
 /// attest delivery - see `settle_order_with_oracle`.
 pub const DELIVERY_ATTESTATION_TAG: &[u8] = b"DELIVERED";
 
+/// Message tag for the optimistic delivery-signal flow - distinct from
+/// DELIVERY_ATTESTATION_TAG so a signature valid for one instruction can
+/// never be replayed against the other, even though both are signed by the
+/// same OracleConfig key. See `signal_delivery`.
+pub const DELIVERY_SIGNAL_TAG: &[u8] = b"LIMINAL:DELIVERY:v1";
+
 /// Kamino Lend (klend) mainnet program. There is no meaningful Kamino
 /// deployment on devnet, so vaults with `yield_enabled = true` only make
 /// sense against a mainnet deployment of this program.

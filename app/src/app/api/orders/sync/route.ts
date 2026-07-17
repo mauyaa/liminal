@@ -86,12 +86,14 @@ export async function syncOrder(orderPda: string): Promise<{ escrowStatus: Escro
   const escrowStatus = status as EscrowStatus;
   const isDefaultBuyer = onChain.buyer.equals(PublicKey.default);
   const changed = escrowStatus !== orderRow.escrowStatus;
+  const challengeDeadlineSecs = onChain.challengeDeadline?.toNumber?.() ?? 0;
 
   await db
     .update(orders)
     .set({
       escrowStatus,
       buyerWallet: isDefaultBuyer ? null : onChain.buyer.toBase58(),
+      challengeDeadline: challengeDeadlineSecs > 0 ? new Date(challengeDeadlineSecs * 1000) : null,
       updatedAt: new Date(),
     })
     .where(eq(orders.orderPda, orderPda));

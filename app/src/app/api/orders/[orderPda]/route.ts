@@ -32,6 +32,7 @@ export async function GET(
       buyerWallet: orders.buyerWallet,
       fundTxSignature: orders.fundTxSignature,
       resolutionTxSignature: orders.resolutionTxSignature,
+      deliveryNote: orders.deliveryNote,
       createdAt: orders.createdAt,
       updatedAt: orders.updatedAt,
       sku: products.sku,
@@ -65,6 +66,7 @@ export async function GET(
           principalBaseUnits: onChain.principalAmount.toString(),
           startTimestamp: onChain.startTimestamp.toNumber(),
           deliveryDeadline: onChain.deliveryDeadline.toNumber(),
+          challengeDeadline: onChain.challengeDeadline.toNumber(),
           refundableNow:
             escrowStatusFromAccount(onChain.status as Record<string, unknown>) === "FUNDED" &&
             onChain.deliveryDeadline.toNumber() > 0 &&

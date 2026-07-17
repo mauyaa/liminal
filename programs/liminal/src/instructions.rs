@@ -9,6 +9,10 @@ pub mod settle_order_yield;
 pub mod settle_order_with_oracle;
 pub mod refund_order;
 pub mod refund_order_yield;
+pub mod signal_delivery;
+pub mod confirm_delivery;
+pub mod challenge_order;
+pub mod finalize_delivery;
 
 pub use initialize_vault::*;
 pub use initialize_vault_yield::*;
@@ -21,3 +25,7 @@ pub use settle_order_yield::*;
 pub use settle_order_with_oracle::*;
 pub use refund_order::*;
 pub use refund_order_yield::*;
+pub use signal_delivery::*;
+pub use confirm_delivery::*;
+pub use challenge_order::*;
+pub use finalize_delivery::*;

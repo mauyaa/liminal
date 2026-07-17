@@ -140,7 +140,7 @@ export default function ListingsPanel() {
         await connection.confirmTransaction(sig, "confirmed");
 
         setFormSuccess(
-          `Listing live. Share your checkout link: ${window.location.origin}/buy/${form.sku}`
+          `Listing live. Share your checkout link: ${window.location.origin}/pay/${form.sku}`
         );
         setForm((f) => ({ ...f, sku: "", title: "", description: "", imageUrl: "", priceUsd: "" }));
         setCreating(false);
@@ -344,7 +344,7 @@ export default function ListingsPanel() {
                   className="h-10 w-10 shrink-0 rounded-md border border-border object-cover"
                 />
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <Link href={`/buy/${l.sku}`} className="truncate text-sm font-medium hover:underline">
+                  <Link href={`/pay/${l.sku}`} className="truncate text-sm font-medium hover:underline">
                     {l.title}
                   </Link>
                   <span className="truncate text-[12px] text-muted">

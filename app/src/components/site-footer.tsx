@@ -13,7 +13,7 @@ export function SiteFooter() {
           <p>Protected stablecoin payments for work delivered.</p>
         </div>
         <div className="site-footer__links">
-          <div><span>Product</span><Link href="/buy/liminal-demo-1">Demo checkout</Link><Link href="/sandbox">Sandbox</Link><Link href="/embed">Embed</Link></div>
+          <div><span>Product</span><Link href="/new">Create a link</Link><Link href="/pay/liminal-demo-1">Demo checkout</Link></div>
           <div><span>Build</span><Link href="/docs">Documentation</Link><Link href="/security">Security</Link><a href="https://github.com/mauyaa/liminal" target="_blank" rel="noreferrer">GitHub ↗</a></div>
         </div>
       </div>

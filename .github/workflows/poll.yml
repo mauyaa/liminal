@@ -1,6 +1,7 @@
 # Keeps the system self-driving with no external scheduler: every 5 minutes
-# this hits the three autonomous endpoints - webhook delivery, subscription
-# billing, and expired-escrow refunds. Requires the CRON_SECRET repo secret
+# this hits the autonomous endpoints - webhook delivery, subscription
+# billing, expired-escrow refunds, and unchallenged-delivery finalization.
+# Requires the CRON_SECRET repo secret
 # (same value as the Vercel env var). workflow_dispatch is there so a run
 # can be triggered manually to verify the wiring.
 name: pollers
@@ -17,7 +18,7 @@ jobs:
       - name: Poll webhooks, billing, and refunds
         run: |
           set -e
-          for p in webhooks subscriptions refunds; do
+          for p in webhooks subscriptions refunds deliveries; do
             echo "== /api/$p/poll =="
             curl -sS --fail-with-body \
               -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \

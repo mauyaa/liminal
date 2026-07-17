@@ -3,7 +3,7 @@ import Link from "next/link";
 
 const nav = [
   { href: "/#how-it-works", label: "How it works" },
-  { href: "/buy/liminal-demo-1", label: "Demo checkout" },
+  { href: "/new", label: "Create a link" },
   { href: "/dashboard", label: "Seller dashboard" },
 ];
 

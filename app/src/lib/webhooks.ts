@@ -6,6 +6,8 @@ const EVENT_BY_STATUS: Record<EscrowStatus, string> = {
   FUNDED: "order.funded",
   SETTLED: "order.settled",
   REFUNDED: "order.refunded",
+  DELIVERY_SIGNALED: "order.delivery_signaled",
+  DISPUTED: "order.disputed",
 };
 
 const RETRY_DELAYS_MS = [0, 2_000, 5_000];
