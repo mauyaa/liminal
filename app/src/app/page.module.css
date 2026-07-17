@@ -29,6 +29,22 @@
 .demoButton { display: flex; min-height: 54px; align-items: center; justify-content: space-between; margin-top: 12px; padding: 0 20px; border-radius: 15px; background: var(--accent); font-size: 12px; font-weight: 700; transition: transform 180ms ease,box-shadow 180ms ease; }
 .demoFoot { padding: 12px 8px 2px; color: var(--muted); font-size: 10px; text-align: center; }
 
+.panels { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; padding: 0 34px; margin-top: 18px; }
+.panelCard { padding: 30px 26px; border: 1px solid var(--border); border-radius: 28px; background: var(--surface); }
+.panelIcon { display: inline-flex; font-size: 26px; }
+.panelCard h3 { margin-top: 16px; font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
+.panelCard p { max-width: 260px; margin-top: 10px; color: var(--muted); font-size: 12.5px; line-height: 1.6; }
+
+.faq { padding: 88px 34px; border-top: 1px solid var(--border); }
+.faq h2 { max-width: 640px; margin: 0 0 34px; font-family: "Iowan Old Style",Georgia,serif; font-size: clamp(1.9rem,3vw,2.7rem); font-weight: 400; line-height: 1.05; letter-spacing: -.04em; }
+.faqItem { max-width: 780px; padding: 22px 0; border-top: 1px solid var(--border); }
+.faqItem:last-child { border-bottom: 1px solid var(--border); }
+.faqItem summary { cursor: pointer; font-size: 14.5px; font-weight: 600; letter-spacing: -.01em; list-style: none; }
+.faqItem summary::-webkit-details-marker { display: none; }
+.faqItem summary::before { display: inline-block; margin-right: 12px; color: var(--muted); content: "+"; }
+.faqItem[open] summary::before { content: "–"; }
+.faqItem p { max-width: 620px; margin-top: 14px; padding-left: 22px; color: var(--muted); font-size: 13px; line-height: 1.65; }
+
 .statement { display: flex; justify-content: flex-end; padding: 96px 34px; border-top: 1px solid var(--border); }
 .statement p { max-width: 920px; font-size: clamp(1.7rem,3vw,3.2rem); line-height: 1.1; letter-spacing: -.04em; }
 .statement strong { font-family: "Iowan Old Style",Georgia,serif; font-weight: 400; }
@@ -48,5 +64,5 @@
 .pathCardDark { background: var(--foreground); color: white; }
 .pathCardDark p { color: #aaa79f; }
 
-@media (max-width: 960px) { .hero { grid-template-columns: 1fr; min-height: auto; padding-top: 88px; } .heroCopy h1 { font-size: clamp(3.25rem,9vw,4.6rem); } .steps { grid-template-columns: repeat(2,1fr); } }
-@media (max-width: 700px) { .page { width: calc(100% - 20px); } .hero { padding: 64px 10px 72px; } .heroCopy h1 { font-size: clamp(2.8rem,12vw,3.7rem); } .actions { align-items: stretch; flex-direction: column; } .primary { justify-content: space-between; } .demoCard { padding: 10px; border-radius: 28px; } .demoBody { padding: 26px 22px; border-radius: 21px; } .demoBody h2 { font-size: 2.35rem; } .demoAmount strong { font-size: 2.85rem; } .statement { padding: 72px 12px; } .flow { padding: 62px 20px; border-radius: 30px; } .flowIntro { grid-template-columns: 1fr; gap: 24px; } .steps { grid-template-columns: 1fr; } .paths { grid-template-columns: 1fr; } .pathCard { min-height: 380px; padding: 32px 25px; border-radius: 30px; } }
+@media (max-width: 960px) { .hero { grid-template-columns: 1fr; min-height: auto; padding-top: 88px; } .heroCopy h1 { font-size: clamp(3.25rem,9vw,4.6rem); } .steps { grid-template-columns: repeat(2,1fr); } .panels { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .page { width: calc(100% - 20px); } .hero { padding: 64px 10px 72px; } .heroCopy h1 { font-size: clamp(2.8rem,12vw,3.7rem); } .actions { align-items: stretch; flex-direction: column; } .primary { justify-content: space-between; } .demoCard { padding: 10px; border-radius: 28px; } .demoBody { padding: 26px 22px; border-radius: 21px; } .demoBody h2 { font-size: 2.35rem; } .demoAmount strong { font-size: 2.85rem; } .panels { padding: 0 10px; } .statement { padding: 72px 12px; } .flow { padding: 62px 20px; border-radius: 30px; } .flowIntro { grid-template-columns: 1fr; gap: 24px; } .steps { grid-template-columns: 1fr; } .faq { padding: 56px 10px; } .paths { grid-template-columns: 1fr; } .pathCard { min-height: 380px; padding: 32px 25px; border-radius: 30px; } }

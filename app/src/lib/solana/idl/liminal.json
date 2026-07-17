@@ -8,6 +8,296 @@
   },
   "instructions": [
     {
+      "name": "challenge_order",
+      "discriminator": [
+        243,
+        77,
+        207,
+        201,
+        99,
+        167,
+        98,
+        12
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "signer": true,
+          "relations": [
+            "order_state"
+          ]
+        },
+        {
+          "name": "seller",
+          "relations": [
+            "order_state"
+          ]
+        },
+        {
+          "name": "order_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "arg",
+                "path": "market_item_id"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "market_item_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "confirm_delivery",
+      "discriminator": [
+        11,
+        109,
+        227,
+        53,
+        179,
+        190,
+        88,
+        155
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "signer": true,
+          "relations": [
+            "order_state"
+          ]
+        },
+        {
+          "name": "seller",
+          "relations": [
+            "order_state"
+          ]
+        },
+        {
+          "name": "order_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "arg",
+                "path": "market_item_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "unified_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  110,
+                  97,
+                  108,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_token_account",
+          "writable": true
+        },
+        {
+          "name": "seller_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "market_item_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "finalize_delivery",
+      "discriminator": [
+        126,
+        171,
+        72,
+        245,
+        212,
+        203,
+        209,
+        251
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "docs": [
+            "Anyone may trigger this once the window has passed. Only pays the",
+            "transaction fee."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "seller",
+          "relations": [
+            "order_state"
+          ]
+        },
+        {
+          "name": "order_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "arg",
+                "path": "market_item_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "unified_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  110,
+                  97,
+                  108,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_token_account",
+          "writable": true
+        },
+        {
+          "name": "seller_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "market_item_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "fund_order",
       "discriminator": [
         224,
@@ -1408,6 +1698,112 @@
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "signal_delivery",
+      "discriminator": [
+        141,
+        208,
+        171,
+        215,
+        162,
+        165,
+        100,
+        20
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "docs": [
+            "Permissionless: anyone holding a valid attestation may trigger this.",
+            "Only pays the transaction fee - no funds move here."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "seller",
+          "relations": [
+            "order_state"
+          ]
+        },
+        {
+          "name": "order_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "arg",
+                "path": "market_item_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "oracle_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "order_state.mint",
+                "account": "OrderState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "market_item_id",
+          "type": "u64"
+        },
+        {
+          "name": "challenge_window_secs",
+          "type": "i64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -1491,6 +1887,16 @@
       "code": 6007,
       "name": "UntrustedOracle",
       "msg": "The attestation was signed by a key other than this vault's configured oracle."
+    },
+    {
+      "code": 6008,
+      "name": "ChallengeWindowExpired",
+      "msg": "The challenge window has already closed."
+    },
+    {
+      "code": 6009,
+      "name": "ChallengeWindowNotElapsed",
+      "msg": "The challenge window has not elapsed yet."
     }
   ],
   "types": [
@@ -1510,6 +1916,12 @@
           },
           {
             "name": "Refunded"
+          },
+          {
+            "name": "DeliverySignaled"
+          },
+          {
+            "name": "Disputed"
           }
         ]
       }
@@ -1518,7 +1930,11 @@
       "name": "OracleConfig",
       "docs": [
         "Per-mint config naming the pubkey trusted to sign delivery attestations",
-        "for `settle_order_with_oracle`. A separate, additive account rather than",
+        "for `settle_order_with_oracle` **and** `signal_delivery` - the same",
+        "trusted key signs two differently-tagged messages (see",
+        "`DELIVERY_ATTESTATION_TAG` vs `DELIVERY_SIGNAL_TAG` in constants.rs) for",
+        "two different instructions, so this config doesn't need to be",
+        "duplicated. A separate, additive account rather than",
         "a new `UnifiedVault` field, so existing already-deployed vaults don't",
         "need to change layout to get this. In production this pubkey would be a",
         "registered Switchboard TEE enclave's attestation key; here it's just a",
@@ -1603,6 +2019,10 @@
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "challenge_deadline",
+            "type": "i64"
           }
         ]
       }

@@ -55,11 +55,18 @@ pub struct OrderState {
     pub k_token_shares: u64,     // 8: this order's Kamino collateral (kToken) balance,
                                   //    0 unless yield_enabled and currently Funded
     pub bump: u8,                // 1
+    // Set by `signal_delivery` to now + CHALLENGE_WINDOW_SECS; 0 before that.
+    // Appended at the end (not inline with the fields above it conceptually
+    // relates to) so already-created accounts under the pre-delivery-signal
+    // program layout keep deserializing unchanged - see README's "Program
+    // upgrades vs. existing accounts".
+    pub challenge_deadline: i64, // 8
 }
 
 impl OrderState {
     pub const SPACE: usize = 8 // discriminator
-        + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8 + 1 + 8 + 1;
+        + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8 + 1 + 8 + 1
+        + 8;
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug)]
@@ -68,10 +75,19 @@ pub enum EscrowStatus {
     Funded,
     Settled,
     Refunded,
+    // Appended rather than inserted before Settled/Refunded (unlike the
+    // spec's own pseudocode ordering) so the existing four discriminants
+    // (0-3) never change for already-created accounts.
+    DeliverySignaled,
+    Disputed,
 }
 
 /// Per-mint config naming the pubkey trusted to sign delivery attestations
-/// for `settle_order_with_oracle`. A separate, additive account rather than
+/// for `settle_order_with_oracle` **and** `signal_delivery` - the same
+/// trusted key signs two differently-tagged messages (see
+/// `DELIVERY_ATTESTATION_TAG` vs `DELIVERY_SIGNAL_TAG` in constants.rs) for
+/// two different instructions, so this config doesn't need to be
+/// duplicated. A separate, additive account rather than
 /// a new `UnifiedVault` field, so existing already-deployed vaults don't
 /// need to change layout to get this. In production this pubkey would be a
 /// registered Switchboard TEE enclave's attestation key; here it's just a

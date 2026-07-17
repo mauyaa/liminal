@@ -98,4 +98,24 @@ pub mod liminal {
     ) -> Result<()> {
         crate::instructions::settle_order_with_oracle::handle_settle_order_with_oracle(ctx, market_item_id)
     }
+
+    pub fn signal_delivery(
+        ctx: Context<SignalDelivery>,
+        market_item_id: u64,
+        challenge_window_secs: i64,
+    ) -> Result<()> {
+        crate::instructions::signal_delivery::handle_signal_delivery(ctx, market_item_id, challenge_window_secs)
+    }
+
+    pub fn confirm_delivery(ctx: Context<ConfirmDelivery>, market_item_id: u64) -> Result<()> {
+        crate::instructions::confirm_delivery::handle_confirm_delivery(ctx, market_item_id)
+    }
+
+    pub fn challenge_order(ctx: Context<ChallengeOrder>, market_item_id: u64) -> Result<()> {
+        crate::instructions::challenge_order::handle_challenge_order(ctx, market_item_id)
+    }
+
+    pub fn finalize_delivery(ctx: Context<FinalizeDelivery>, market_item_id: u64) -> Result<()> {
+        crate::instructions::finalize_delivery::handle_finalize_delivery(ctx, market_item_id)
+    }
 }

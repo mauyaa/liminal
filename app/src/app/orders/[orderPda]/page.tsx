@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Transaction } from "@solana/web3.js";
+import bs58 from "bs58";
 
 interface OrderDetail {
   orderPda: string;
@@ -13,6 +14,7 @@ interface OrderDetail {
   buyerWallet: string | null;
   fundTxSignature: string | null;
   resolutionTxSignature: string | null;
+  deliveryNote: string | null;
   sku: string;
   title: string;
   imageUrl: string;
@@ -26,17 +28,37 @@ interface OrderDetail {
     principalBaseUnits: string;
     startTimestamp: number;
     deliveryDeadline: number;
+    challengeDeadline: number;
     refundableNow: boolean;
   } | null;
 }
 
 type ActionState = "idle" | "building" | "signing" | "sending" | "done" | "error";
+type SignalState = "idle" | "signing" | "sending" | "error";
+
+/** "in 2d 4h" / "in 45m" / "any moment now" for a unix-seconds deadline. */
+function formatCountdown(deadlineSeconds: number, nowMs: number): string {
+  const diffMs = deadlineSeconds * 1000 - nowMs;
+  if (diffMs <= 0) return "any moment now";
+  const totalMinutes = Math.floor(diffMs / 60_000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `in ${days}d ${hours}h`;
+  if (hours > 0) return `in ${hours}h ${minutes}m`;
+  return `in ${minutes}m`;
+}
 
 /** The exact on-chain lifecycle, expressed in buyer language. */
 function Timeline({ status }: { status: string }) {
   const finalLabel = status === "REFUNDED" ? "Refunded" : "Complete";
   const nodes = ["Payment protected", "Await delivery", finalLabel];
-  const reached = status === "SETTLED" || status === "REFUNDED" ? 2 : status === "FUNDED" ? 1 : 0;
+  const reached =
+    status === "SETTLED" || status === "REFUNDED"
+      ? 2
+      : status === "FUNDED" || status === "DELIVERY_SIGNALED" || status === "DISPUTED"
+        ? 1
+        : 0;
 
   return (
     <div className="flex items-start">
@@ -75,12 +97,21 @@ function Timeline({ status }: { status: string }) {
 export default function OrderPage() {
   const { orderPda } = useParams<{ orderPda: string }>();
   const { connection } = useConnection();
-  const { publicKey, signTransaction } = useWallet();
+  const { publicKey, signTransaction, signMessage } = useWallet();
 
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionState, setActionState] = useState<ActionState>("idle");
   const [actionError, setActionError] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const [deliveryNote, setDeliveryNote] = useState("");
+  const [signalState, setSignalState] = useState<SignalState>("idle");
+  const [signalError, setSignalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const refresh = useCallback(async () => {
     const res = await fetch(`/api/orders/${orderPda}`);
@@ -96,7 +127,7 @@ export default function OrderPage() {
   }, [refresh]);
 
   const runLifecycleAction = useCallback(
-    async (kind: "settle" | "refund") => {
+    async (kind: "settle" | "refund" | "confirm" | "challenge") => {
       if (!publicKey || !signTransaction) return;
       setActionError(null);
       setActionState("building");
@@ -133,9 +164,41 @@ export default function OrderPage() {
     [publicKey, signTransaction, connection, orderPda, refresh]
   );
 
+  const signalDelivery = useCallback(async () => {
+    if (!publicKey || !signMessage) return;
+    setSignalError(null);
+    setSignalState("signing");
+    try {
+      const message = new TextEncoder().encode(`mark-delivered:${orderPda}`);
+      const signatureBytes = await signMessage(message);
+      const signature = bs58.encode(signatureBytes);
+
+      setSignalState("sending");
+      const res = await fetch(`/api/orders/${orderPda}/signal-delivery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sellerWallet: publicKey.toBase58(),
+          deliveryNote: deliveryNote || undefined,
+          signature,
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.message ?? "Failed to mark delivered");
+
+      setSignalState("idle");
+      await refresh();
+    } catch (err) {
+      setSignalError(err instanceof Error ? err.message : "Failed to mark delivered");
+      setSignalState("error");
+    }
+  }, [publicKey, signMessage, orderPda, deliveryNote, refresh]);
+
   const status = order?.onChain?.status ?? order?.escrowStatus ?? "";
   const isBuyer = !!publicKey && !!order?.onChain?.buyer && publicKey.toBase58() === order.onChain.buyer;
+  const isSeller = !!publicKey && publicKey.toBase58() === order?.merchantWallet;
   const deadline = order?.onChain?.deliveryDeadline ?? 0;
+  const challengeDeadline = order?.onChain?.challengeDeadline ?? 0;
   const refundable = !!order?.onChain?.refundableNow;
   const busy = actionState === "building" || actionState === "signing" || actionState === "sending";
   const busyLabel =
@@ -175,10 +238,11 @@ export default function OrderPage() {
 
               {status === "FUNDED" && !refundable && (
                 <div className="flex flex-col gap-1">
-                  <p className="font-serif text-3xl leading-[1] tracking-[-.04em]">Your payment is protected in escrow.</p>
+                  <p className="font-serif text-3xl leading-[1] tracking-[-.04em]">Your money is locked, not spent.</p>
                   <p className="mt-4 max-w-xl text-[13px] leading-6 text-muted">
                     Once your order arrives, confirm below to release the payment. Not delivered
-                    by <span className="font-medium text-foreground">{deadline > 0 ? new Date(deadline * 1000).toLocaleString() : "the deadline"}</span>?
+                    by <span className="font-medium text-foreground">{deadline > 0 ? new Date(deadline * 1000).toLocaleString() : "the deadline"}</span>
+                    {deadline > 0 && <span className="font-medium text-foreground"> ({formatCountdown(deadline, now)})</span>}?
                     You get refunded automatically — no action needed.
                   </p>
                 </div>
@@ -190,6 +254,29 @@ export default function OrderPage() {
                   <p className="mt-4 text-[13px] leading-6 text-muted">
                     You can claim your refund now — or do nothing, it&apos;s processed
                     automatically.
+                  </p>
+                </div>
+              )}
+
+              {status === "DELIVERY_SIGNALED" && (
+                <div className="flex flex-col gap-1">
+                  <p className="font-serif text-3xl leading-[1] tracking-[-.04em]">Delivered — auto-releases soon.</p>
+                  <p className="mt-4 max-w-xl text-[13px] leading-6 text-muted">
+                    The seller marked this delivered. It releases to them automatically
+                    {challengeDeadline > 0 && (
+                      <> <span className="font-medium text-foreground">{formatCountdown(challengeDeadline, now)}</span></>
+                    )}{" "}
+                    unless you flag a problem first.
+                  </p>
+                </div>
+              )}
+
+              {status === "DISPUTED" && (
+                <div className="flex flex-col gap-1">
+                  <p className="font-serif text-3xl tracking-[-.04em]">Under review.</p>
+                  <p className="mt-4 max-w-xl text-[13px] leading-6 text-muted">
+                    You flagged a problem with this delivery. Resolving disputes isn&apos;t
+                    automated yet — this is a manual step for now, not an instant verdict.
                   </p>
                 </div>
               )}
@@ -234,6 +321,53 @@ export default function OrderPage() {
                 </div>
               )}
 
+              {status === "FUNDED" && isSeller && !refundable && (
+                <div className="flex flex-col gap-2">
+                  <input
+                    type="text"
+                    placeholder="Optional: link to what you delivered"
+                    value={deliveryNote}
+                    onChange={(e) => setDeliveryNote(e.target.value)}
+                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-foreground/40"
+                  />
+                  <button
+                    onClick={signalDelivery}
+                    disabled={signalState === "signing" || signalState === "sending"}
+                    className="inline-flex h-13 items-center justify-center rounded-xl bg-foreground px-6 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+                  >
+                    {signalState === "signing"
+                      ? "Confirm in your wallet…"
+                      : signalState === "sending"
+                        ? "Marking delivered…"
+                        : "Mark as delivered"}
+                  </button>
+                  <p className="text-[12px] leading-4 text-muted">
+                    No transaction fee - just a free signature proving you&apos;re the seller.
+                    Opens a 48-hour window before the buyer&apos;s payment auto-releases.
+                  </p>
+                  {signalError && <p className="text-sm text-red-500">{signalError}</p>}
+                </div>
+              )}
+
+              {status === "DELIVERY_SIGNALED" && isBuyer && (
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => runLifecycleAction("confirm")}
+                    disabled={busy}
+                    className="inline-flex h-13 items-center justify-center rounded-xl bg-foreground px-6 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+                  >
+                    {busy ? busyLabel : "Confirm now - release funds"}
+                  </button>
+                  <button
+                    onClick={() => runLifecycleAction("challenge")}
+                    disabled={busy}
+                    className="inline-flex h-11 items-center justify-center rounded-xl border border-border px-6 text-sm font-medium transition-colors hover:bg-foreground/5 disabled:opacity-50"
+                  >
+                    Something&apos;s wrong
+                  </button>
+                </div>
+              )}
+
               {status === "FUNDED" && publicKey && refundable && (
                 <button
                   onClick={() => runLifecycleAction("refund")}
@@ -244,9 +378,9 @@ export default function OrderPage() {
                 </button>
               )}
 
-              {status === "FUNDED" && !isBuyer && !refundable && (
+              {status === "FUNDED" && !isBuyer && !isSeller && !refundable && (
                 <p className="text-sm text-muted">
-                  Connect the buying wallet to manage this order.
+                  Connect the buyer&apos;s or seller&apos;s wallet to manage this order.
                 </p>
               )}
 

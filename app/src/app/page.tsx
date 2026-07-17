@@ -2,13 +2,27 @@ import Image from "next/image";
 import Link from "next/link";
 import styles from "./page.module.css";
 
+const panels = [
+  ["🔒", "Buyer pays the link", "Money locks on-chain. Neither of you can touch it."],
+  ["📦", "You deliver", "The system detects it — no screenshots, no proof-sending."],
+  ["✅", "Money lands in your wallet", "Automatically. No account, no balance to cash out."],
+];
+
 const journey = [
-  ["01", "Create checkout", "The seller sets the amount and the delivery deadline."],
-  ["02", "Review terms", "The buyer sees the price, protection and refund rule before connecting."],
-  ["03", "Fund escrow", "USDC moves into the Liminal program—not to Liminal and not yet to the seller."],
-  ["04", "Deliver", "The seller sees a funded order and completes the promised work."],
-  ["05", "Confirm", "The buyer confirms receipt to release the escrowed funds."],
-  ["06", "Pay or refund", "Confirmation pays the seller. After 24 hours unconfirmed, the buyer can refund."],
+  ["01", "Create a link", "Title, price, delivery deadline. About 15 seconds."],
+  ["02", "Buyer pays", "USDC moves into the Liminal program—not to Liminal and not yet to the seller."],
+  ["03", "You deliver", "The buyer sees a funded order and you complete the promised work."],
+  ["04", "Buyer confirms", "One tap releases the escrowed funds to you."],
+  ["05", "Or it auto-refunds", "Unconfirmed past the deadline? The buyer gets refunded automatically."],
+  ["06", "Either way, it's tracked", "A shareable timeline page replaces \"did you send it?\" messages."],
+];
+
+const faq = [
+  ["What if the buyer never confirms?", "The payment auto-refunds to them after the delivery deadline if you never marked it delivered, and auto-releases to you if you did — nobody has to remember to act."],
+  ["What if I never deliver?", "The buyer's money was never sent to you — it sits in the escrow program. Past your delivery deadline, they can refund it any time, or it's refunded to them automatically."],
+  ["Who decides if something goes wrong?", "Today: the buyer confirms receipt, or the deadline decides it automatically. A dispute-resolution step for contested deliveries is next — it isn't live yet, and we won't pretend it is."],
+  ["What does it cost?", "Nothing right now. Liminal charges $0.00 on every escrow — it's free while we build out the product."],
+  ["Why crypto?", "Because a buyer who already has a wallet can pay a stranger in seconds, with the money provably locked instead of just promised."],
 ];
 
 export default function Home() {
@@ -16,17 +30,17 @@ export default function Home() {
     <main className={styles.page}>
       <section className={styles.hero}>
         <div className={styles.heroCopy}>
-          <h1>Checkout that waits for delivery.</h1>
+          <h1>Get paid by strangers. Nobody gets scammed.</h1>
           <p>
-            Liminal holds a buyer’s USDC in program-controlled escrow. Confirm delivery to pay
-            the seller. Leave it unconfirmed for 24 hours and the buyer can refund.
+            Create a payment link. The money locks until delivery is proven — then it
+            releases itself.
           </p>
           <div className={styles.actions}>
-            <Link href="/buy/liminal-demo-1" className={styles.primary}>Open the $1 demo checkout <span>↗</span></Link>
-            <Link href="/dashboard" className={styles.secondary}>Create a checkout</Link>
+            <Link href="/new" className={styles.primary}>Create your payment link <span>↗</span></Link>
+            <Link href="#how-it-works" className={styles.secondary}>See how it works</Link>
           </div>
           <div className={styles.proof}>
-            <span>Zero protocol fee</span><span>Solana escrow</span><span>24-hour protection</span>
+            <span>Zero protocol fee</span><span>Solana escrow</span><span>Auto-refund on timeout</span>
           </div>
         </div>
 
@@ -45,13 +59,23 @@ export default function Home() {
               <div><dt>If unconfirmed</dt><dd>Refundable after 24h</dd></div>
             </dl>
           </div>
-          <Link href="/buy/liminal-demo-1" className={styles.demoButton}>Review and pay $1.00 <span>↗</span></Link>
+          <Link href="/pay/liminal-demo-1" className={styles.demoButton}>Review and pay $1.00 <span>↗</span></Link>
           <p className={styles.demoFoot}>The demo uses test tokens on Solana devnet.</p>
         </article>
       </section>
 
+      <section className={styles.panels}>
+        {panels.map(([icon, title, body]) => (
+          <div key={title} className={styles.panelCard}>
+            <span className={styles.panelIcon}>{icon}</span>
+            <h3>{title}</h3>
+            <p>{body}</p>
+          </div>
+        ))}
+      </section>
+
       <section className={styles.statement}>
-        <p><strong>The product is the promise.</strong> Funds cannot move to the seller before delivery is confirmed, and they do not stay trapped after the deadline.</p>
+        <p><strong>Binance moves your money.</strong> We make sure you don&apos;t lose it.</p>
       </section>
 
       <section className={styles.flow} id="how-it-works">
@@ -64,9 +88,19 @@ export default function Home() {
         </ol>
       </section>
 
+      <section className={styles.faq}>
+        <h2>Questions worth answering before you send money.</h2>
+        {faq.map(([q, a]) => (
+          <details key={q} className={styles.faqItem}>
+            <summary>{q}</summary>
+            <p>{a}</p>
+          </details>
+        ))}
+      </section>
+
       <section className={styles.paths}>
-        <Link href="/buy/liminal-demo-1" className={styles.pathCard}><h2>Pay $1.00 through the real flow.</h2><p>Review the exact terms, connect a wallet, fund escrow and track the result.</p><b>Open demo checkout ↗</b></Link>
-        <Link href="/dashboard" className={`${styles.pathCard} ${styles.pathCardDark}`}><h2>Create protected checkout.</h2><p>Set a price and delivery window, share the link, then act on funded orders.</p><b>Open seller dashboard ↗</b></Link>
+        <Link href="/pay/liminal-demo-1" className={styles.pathCard}><h2>Pay $1.00 through the real flow.</h2><p>Review the exact terms, connect a wallet, fund escrow and track the result.</p><b>Open demo checkout ↗</b></Link>
+        <Link href="/new" className={`${styles.pathCard} ${styles.pathCardDark}`}><h2>Create your payment link.</h2><p>Title, price, deadline — about 15 seconds. Share it anywhere a deal happens.</p><b>Create a link ↗</b></Link>
       </section>
     </main>
   );

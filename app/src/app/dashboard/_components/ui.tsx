@@ -54,6 +54,8 @@ export function FormSection({
 const STATUS_STYLES: Record<string, { label: string; dot: string }> = {
   INITIALIZED: { label: "Live", dot: "bg-foreground/30" },
   FUNDED: { label: "Paid — deliver", dot: "bg-amber-500" },
+  DELIVERY_SIGNALED: { label: "Delivered — releasing soon", dot: "bg-amber-500" },
+  DISPUTED: { label: "Under review", dot: "bg-red-500" },
   SETTLED: { label: "Paid out", dot: "bg-emerald-500" },
   REFUNDED: { label: "Refunded", dot: "bg-foreground/30" },
 };

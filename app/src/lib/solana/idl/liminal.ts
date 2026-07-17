@@ -14,6 +14,296 @@ export type Liminal = {
   },
   "instructions": [
     {
+      "name": "challengeOrder",
+      "discriminator": [
+        243,
+        77,
+        207,
+        201,
+        99,
+        167,
+        98,
+        12
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "signer": true,
+          "relations": [
+            "orderState"
+          ]
+        },
+        {
+          "name": "seller",
+          "relations": [
+            "orderState"
+          ]
+        },
+        {
+          "name": "orderState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "arg",
+                "path": "marketItemId"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "marketItemId",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "confirmDelivery",
+      "discriminator": [
+        11,
+        109,
+        227,
+        53,
+        179,
+        190,
+        88,
+        155
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "signer": true,
+          "relations": [
+            "orderState"
+          ]
+        },
+        {
+          "name": "seller",
+          "relations": [
+            "orderState"
+          ]
+        },
+        {
+          "name": "orderState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "arg",
+                "path": "marketItemId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "unifiedVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  110,
+                  97,
+                  108,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vaultTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "sellerTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "marketItemId",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "finalizeDelivery",
+      "discriminator": [
+        126,
+        171,
+        72,
+        245,
+        212,
+        203,
+        209,
+        251
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "docs": [
+            "Anyone may trigger this once the window has passed. Only pays the",
+            "transaction fee."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "seller",
+          "relations": [
+            "orderState"
+          ]
+        },
+        {
+          "name": "orderState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "arg",
+                "path": "marketItemId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "unifiedVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  109,
+                  105,
+                  110,
+                  97,
+                  108,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vaultTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "sellerTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "marketItemId",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "fundOrder",
       "discriminator": [
         224,
@@ -1414,6 +1704,112 @@ export type Liminal = {
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "signalDelivery",
+      "discriminator": [
+        141,
+        208,
+        171,
+        215,
+        162,
+        165,
+        100,
+        20
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "docs": [
+            "Permissionless: anyone holding a valid attestation may trigger this.",
+            "Only pays the transaction fee - no funds move here."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "seller",
+          "relations": [
+            "orderState"
+          ]
+        },
+        {
+          "name": "orderState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "arg",
+                "path": "marketItemId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "oracleConfig",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "orderState.mint",
+                "account": "orderState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "instructionsSysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "marketItemId",
+          "type": "u64"
+        },
+        {
+          "name": "challengeWindowSecs",
+          "type": "i64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -1497,6 +1893,16 @@ export type Liminal = {
       "code": 6007,
       "name": "untrustedOracle",
       "msg": "The attestation was signed by a key other than this vault's configured oracle."
+    },
+    {
+      "code": 6008,
+      "name": "challengeWindowExpired",
+      "msg": "The challenge window has already closed."
+    },
+    {
+      "code": 6009,
+      "name": "challengeWindowNotElapsed",
+      "msg": "The challenge window has not elapsed yet."
     }
   ],
   "types": [
@@ -1516,6 +1922,12 @@ export type Liminal = {
           },
           {
             "name": "refunded"
+          },
+          {
+            "name": "deliverySignaled"
+          },
+          {
+            "name": "disputed"
           }
         ]
       }
@@ -1524,7 +1936,11 @@ export type Liminal = {
       "name": "oracleConfig",
       "docs": [
         "Per-mint config naming the pubkey trusted to sign delivery attestations",
-        "for `settle_order_with_oracle`. A separate, additive account rather than",
+        "for `settle_order_with_oracle` **and** `signal_delivery` - the same",
+        "trusted key signs two differently-tagged messages (see",
+        "`DELIVERY_ATTESTATION_TAG` vs `DELIVERY_SIGNAL_TAG` in constants.rs) for",
+        "two different instructions, so this config doesn't need to be",
+        "duplicated. A separate, additive account rather than",
         "a new `UnifiedVault` field, so existing already-deployed vaults don't",
         "need to change layout to get this. In production this pubkey would be a",
         "registered Switchboard TEE enclave's attestation key; here it's just a",
@@ -1609,6 +2025,10 @@ export type Liminal = {
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "challengeDeadline",
+            "type": "i64"
           }
         ]
       }

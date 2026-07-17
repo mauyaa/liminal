@@ -99,8 +99,14 @@ export async function buildUnsignedTransaction(
     .toString("base64");
 }
 
-/** Anchor represents a Rust unit enum as `{ variantName: {} }`; pull out the key. */
+/**
+ * Anchor represents a Rust unit enum as `{ variantName: {} }`; pull out the
+ * key and convert its camelCase variant name to SCREAMING_SNAKE_CASE (e.g.
+ * `deliverySignaled` -> `DELIVERY_SIGNALED`), matching `ESCROW_STATUSES`.
+ * Plain `.toUpperCase()` alone only worked by coincidence while every
+ * variant was a single word.
+ */
 export function escrowStatusFromAccount(status: Record<string, unknown>): string {
   const variant = Object.keys(status)[0];
-  return variant.toUpperCase();
+  return variant.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toUpperCase();
 }

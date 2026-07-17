@@ -2,7 +2,14 @@ import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core
 import { relations } from "drizzle-orm";
 
 /** Mirrors the on-chain `EscrowStatus` enum in programs/liminal/src/state.rs. */
-export const ESCROW_STATUSES = ["INITIALIZED", "FUNDED", "SETTLED", "REFUNDED"] as const;
+export const ESCROW_STATUSES = [
+  "INITIALIZED",
+  "FUNDED",
+  "SETTLED",
+  "REFUNDED",
+  "DELIVERY_SIGNALED",
+  "DISPUTED",
+] as const;
 export type EscrowStatus = (typeof ESCROW_STATUSES)[number];
 
 export const merchants = sqliteTable(
@@ -61,6 +68,14 @@ export const orders = sqliteTable(
       .default("INITIALIZED"),
     fundTxSignature: text("fund_tx_signature"),
     resolutionTxSignature: text("resolution_tx_signature"),
+    // Set once `signal_delivery` lands; mirrors the on-chain
+    // OrderState.challenge_deadline so the UI can show a countdown without
+    // an extra RPC round-trip on every render.
+    challengeDeadline: integer("challenge_deadline", { mode: "timestamp" }),
+    // Optional free-text/link the seller attaches when marking delivery -
+    // e.g. a Drive/GitHub link. No file storage for this pass; nothing in
+    // the escrow mechanism itself needs one.
+    deliveryNote: text("delivery_note"),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -175,6 +190,25 @@ export const rateLimits = sqliteTable("rate_limits", {
   key: text("key").primaryKey(),
   count: integer("count").notNull().default(1),
   windowEndsAt: integer("window_ends_at", { mode: "timestamp" }).notNull(),
+});
+
+/**
+ * Log-only notification record: what would have been sent, to whom, for
+ * which event - no real email/Telegram provider wired up yet. Every call
+ * site that would notify a buyer/seller writes one row here instead of
+ * sending anything. Swapping in a real provider later is a one-function
+ * change (a `send()` call added where these rows are written), since every
+ * event already funnels through this single shape.
+ */
+export const notifications = sqliteTable("notifications", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  orderPda: text("order_pda").notNull(),
+  channel: text("channel").notNull(), // "email" | "telegram", reserved for when real sending exists
+  event: text("event").notNull(), // e.g. "delivery_signaled", "finalized", "challenged"
+  payload: text("payload").notNull(), // JSON-encoded details for that event
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
 export const merchantsRelations = relations(merchants, ({ many }) => ({

@@ -70,13 +70,14 @@ export async function GET(
   // deliveryWindowSeconds rides along as an extra field (harmless to
   // spec-compliant Actions clients) so the checkout page can state the
   // delivery promise before the deadline exists on-chain.
-  const payload: ActionGetResponse & { deliveryWindowSeconds: number } = {
+  const payload: ActionGetResponse & { deliveryWindowSeconds: number; sellerWallet: string } = {
     type: "action",
     icon: listing.imageUrl,
     title: listing.title,
     description: listing.description ?? `Zero-fee escrowed checkout for ${listing.title}.`,
     label: `Buy for $${priceLabel}`,
     deliveryWindowSeconds: listing.deliveryWindowSeconds,
+    sellerWallet: listing.sellerWallet,
     links: {
       actions: [
         {

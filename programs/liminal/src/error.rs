@@ -18,4 +18,8 @@ pub enum LiminalError {
     InvalidOracleAttestation,
     #[msg("The attestation was signed by a key other than this vault's configured oracle.")]
     UntrustedOracle,
+    #[msg("The challenge window has already closed.")]
+    ChallengeWindowExpired,
+    #[msg("The challenge window has not elapsed yet.")]
+    ChallengeWindowNotElapsed,
 }
