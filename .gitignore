@@ -6,3 +6,7 @@ node_modules
 test-ledger
 .yarn
 .surfpool
+
+CLAUDE.md
+AGENTS.md
+.claude/
